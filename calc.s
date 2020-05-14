@@ -11,6 +11,7 @@ section .data           ; inisiliazed vars
 section .bss            ; uninitilaized vars
     stack: resd 1       ; dynamic stack pointer
     stackBase: resd 1   ; pointer to head of stack
+    
     buff: resb 81
 
 %define EXIT_SUCCESS 0
@@ -67,10 +68,20 @@ section .bss            ; uninitilaized vars
     sub eax , %1
     and eax, 1 
 %endmacro
+%macro myMalloc 1
+    push ebx
+    push ecx
+    push edx              
+    push dword %1
+    call malloc
+    add esp, 4
+    pop edx
+    pop ecx
+    pop ebx
+%endmacro
 %macro pushNewLink 1
     ; %1 data
-    push dword 5
-    call malloc                 ; eax will point to new-link
+    myMalloc 5                 ; eax will point to new-link
     mov ebx, dword [stack]      ; pointer to pointer head of linked list
     mov ebx, dword [ebx]        ; pointer to head linked list
     mov [eax], byte %1          ; new-link.data <- %1 (byte)
@@ -149,8 +160,9 @@ main:
     main_loop:
         push buff               ; gets only argument
         call gets               ; load input inti buff
-        b1:
+        ; parse function 
         call posh
+        call poop
         ; call poop
         jmp main_loop
     ; push dword 4
@@ -193,7 +205,7 @@ posh:
     oddlength:
         parseOneChar edx    ; returned value in eax
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
-        printHexDigit ecx   ; 
+        ; printHexDigit ecx   ; 
         pushNewLink ecx
         add edx, 1 
         b3:
@@ -202,7 +214,7 @@ posh:
         je  end_posh
         parseTwochars edx
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
-        printHexDigit ecx
+        ; printHexDigit ecx
         pushNewLink ecx
         add edx, 2
         jmp evenlength
@@ -242,6 +254,7 @@ poop:
 printNumList:
     push ebp
     mov ebp, esp
+
     mov eax, [ebp+8]        ;get link* l (given parameter)
     cmp eax, 0              ;if (l == null_ptr)
     je .end                 ;jmp to end
@@ -251,12 +264,16 @@ printNumList:
     call printNumList       ;recursive call
     add esp, 4              ;clean arg
     popad
-    mov ebx, 0
+
+    mov ebx, 0 ;importent
     mov bl , byte [eax]     ;ebx <- l.value
+
+    ;call printf should be done with proper macro
     push ebx
     push hexa_format
     call printf
     add esp, 4              ;clean arg
+    ; !!!!should add free of every link of next!!!!
     .end:
     mov esp, ebp
     pop ebx
