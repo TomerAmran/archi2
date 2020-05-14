@@ -4,7 +4,7 @@ section	.rodata ;constats
     format_string: db "%d", 10, 0	; format string
     hexa_format: db "%X",0
     string_format: db "%s",0
-    new_line: db 10
+    mynew_line: db "",10,0
 
 section .data           ; inisiliazed vars
     size: dd 0
@@ -227,9 +227,8 @@ posh:
         pop ebp
         ret
     overflow:
-        push overflowMsg
-        call printf
-        jmp myexit
+        printString overflowMsg
+        jmp main_loop
 
 poop:
     push ebp
@@ -244,12 +243,14 @@ poop:
     decStack
     mov esp, ebp
     pop ebp
-
+    printString mynew_line
     ret
     
     underflow:
     printString underflowMsg
-    jmp main_loop
+    mov esp, ebp
+    pop ebp
+    ret
 
 printNumList:
     push ebp

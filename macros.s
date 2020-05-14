@@ -5,7 +5,7 @@
  format_string: db "%d", 10, 0
  hexa_format: db "%X",0
  string_format: db "%s",0
- new_line: db 10
+ mynew_line: db "",10,0
 
 [section .data]
  size: dd 0
@@ -243,48 +243,61 @@ posh:
  pop ebp
  ret
  overflow:
- push overflowMsg
+ pushad
+%line 230+0 calc.s
+ push dword overflowMsg
+ push string_format
  call printf
- jmp myexit
+ add esp, 8
+ popad
+%line 231+1 calc.s
+ jmp main_loop
 
 poop:
  push ebp
  mov ebp, esp
-
  mov eax, [size]
  cmp eax, 0
  je underflow
 
-
-%line 242+0 calc.s
+%line 239+0 calc.s
 
  mov eax, dword [stack]
  mov eax, dword [eax]
-%line 243+1 calc.s
+%line 240+1 calc.s
  push eax
  call printNumList
  add esp, 4
-
  sub dword [size], 1
-%line 247+0 calc.s
+%line 243+0 calc.s
  sub byte [stack], 4
-%line 248+1 calc.s
-
+%line 244+1 calc.s
  mov esp, ebp
  pop ebp
+ newline:
+ pushad
+%line 247+0 calc.s
+ push dword mynew_line
+ push string_format
+ call printf
+ add esp, 8
+ popad
+%line 248+1 calc.s
 
  ret
 
  underflow:
  pushad
-%line 255+0 calc.s
+%line 252+0 calc.s
  push dword underflowMsg
  push string_format
  call printf
  add esp, 8
  popad
-%line 256+1 calc.s
- jmp main_loop
+%line 253+1 calc.s
+ mov esp, ebp
+ pop ebp
+ ret
 
 printNumList:
  push ebp
@@ -301,16 +314,16 @@ printNumList:
  mov ebx, 0
  mov bl , byte [eax]
  pushad
-%line 272+0 calc.s
+%line 271+0 calc.s
  push dword ebx
  push hexa_format
  call printf
  add esp, 8
  popad
-%line 273+1 calc.s
+%line 272+1 calc.s
  mov eax, [eax+1]
  push ebx
-%line 274+0 calc.s
+%line 273+0 calc.s
  push ecx
  push edx
  push dword eax
@@ -319,7 +332,7 @@ printNumList:
  pop edx
  pop ecx
  pop ebx
-%line 275+1 calc.s
+%line 274+1 calc.s
  .end:
  mov esp, ebp
  pop ebx
