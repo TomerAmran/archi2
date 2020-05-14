@@ -12,14 +12,6 @@ section .bss            ; uninitilaized vars
     stack: resd 1       ; dynamic stack pointer
     stackBase: resd 1   ; pointer to head of stack
     buff: resb 81
-set disassembly-flavor intel
-layout asm
-layout regs
-break main
-break posh
-break posh
-break b1
-break b2
 
 %define EXIT_SUCCESS 0
 %define SIGEXIT 1
@@ -159,10 +151,8 @@ main:
         push buff               ; gets only argument
         call gets               ; load input inti buff
         b1:
-        call posh               ; push new num into operand stack
-        call gets               ;                                   ?????????????
         call posh
-        call poop
+        ; call poop
         jmp main_loop
     ; push dword 4
     ; push dword defaultCapacity
