@@ -23,14 +23,13 @@ section .bss            ; uninitilaized vars
     call printf
 %endmacro
 %macro printHexDigit 1
-    pushad
-    push  %1
+    pushad              
+    push dword %1
     push hexa_format
     call printf
     add esp, 8
     popad
 %endmacro
-
 %macro asciiToHex 1
     cmp %1, _A
 	jge %%itA_F
@@ -142,8 +141,8 @@ main:
     init_stack:
         push dword 4            ; calloc first arg
         push dword [capacity]   ; calloc second arg
-        call calloc             ; allocate memory for opetand stack
-        mov [stack], eax        ; pointer to end of stack ?????????????????
+        call calloc             ; allocate memory for opetand stack. eax <- stack pointer
+        mov [stack], eax        ; pointer to end of stack
         mov [stackBase], eax
     
     ; #####  MAIN LOOP  #####
@@ -179,8 +178,8 @@ myexit:
 
 
 posh:
-    push ebp                
-    mov ebp, esp
+    push ebp                ; jump over ret address             
+    mov ebp, esp            
 
     mov eax, [size]         ; put size in eax
     cmp eax , [capacity]    ; size ?= capacity
@@ -188,13 +187,13 @@ posh:
     incStack                ; else, size++
     mov edx, buff           ; we gonna mess with this pointer
     b2:
-    checkLengthPairty buff
-    cmp eax,0
+    checkLengthPairty buff  ; returned value in eax
+    cmp eax,0               ; if buff size is even
     je evenlength
     oddlength:
         parseOneChar edx    ; returned value in eax
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
-        printHexDigit ecx
+        printHexDigit ecx   ; 
         pushNewLink ecx
         add edx, 1 
         b3:
@@ -208,9 +207,9 @@ posh:
         add edx, 2
         jmp evenlength
     end_posh:
-    mov esp, ebp
-    pop ebp
-    ret
+        mov esp, ebp
+        pop ebp
+        ret
     overflow:
         push overflowMsg
         call printf
