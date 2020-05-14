@@ -12,14 +12,6 @@ section .bss ; uninitilaized vars
     stack: resd 1 ; reserve
     stackBase: resd 1 ;
     buff: resb 81
-set disassembly-flavor intel
-layout asm
-layout regs
-break main
-break posh
-break posh
-break b1
-break b2
 
 %define EXIT_SUCCESS 0
 %define SIGEXIT 1
@@ -160,9 +152,7 @@ main:
         call gets
         b1:
         call posh
-        call gets
-        call posh
-        call poop
+        ; call poop
         jmp main_loop
     ; push dword 4
     ; push dword defaultCapacity
