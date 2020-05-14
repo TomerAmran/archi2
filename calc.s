@@ -5,12 +5,12 @@ section	.rodata ;constats
     hexa_format: db "%X",0
     new_line: db 10
 
-section .data ; inisiliazed vars
+section .data           ; inisiliazed vars
     size: dd 0
     capacity: dd 5    
-section .bss ; uninitilaized vars
-    stack: resd 1 ; reserve
-    stackBase: resd 1 ;
+section .bss            ; uninitilaized vars
+    stack: resd 1       ; dynamic stack pointer
+    stackBase: resd 1   ; pointer to head of stack
     buff: resb 81
 set disassembly-flavor intel
 layout asm
@@ -79,29 +79,29 @@ break b2
 %macro pushNewLink 1
     ; %1 data
     push dword 5
-    call malloc ; eax will point to new-link
-    mov ebx, dword [stack] ; pointer to pointer head of linked list
-    mov ebx, dword [ebx] ; pointer to head linked list
-    mov [eax], byte %1 ; new-link.data <- %1 (byte)
-    mov [eax+1], dword ebx ; new-link.next <- old head
-    mov ebx, dword [stack] ; pointer to pointer head of linked list
-    mov [ebx], dword eax ; head <- new-link
+    call malloc                 ; eax will point to new-link
+    mov ebx, dword [stack]      ; pointer to pointer head of linked list
+    mov ebx, dword [ebx]        ; pointer to head linked list
+    mov [eax], byte %1          ; new-link.data <- %1 (byte)
+    mov [eax+1], dword ebx      ; new-link.next <- old head
+    mov ebx, dword [stack]      ; pointer to pointer head of linked list
+    mov [ebx], dword eax        ; head <- new-link
 %endmacro
 %macro incStack 0
     inc dword [size]
-    add byte [stack], 4 ;move top pointer
+    add byte [stack], 4         ; move top pointer
     mov eax, [stack]
-    mov dword [eax], dword 0 ;init as null pointer
+    mov dword [eax], dword 0    ; init as null pointer
 %endmacro
 %macro decStack 0
     dec dword [size]
-    sub byte [stack], 4 ;move top pointer
+    sub byte [stack], 4         ;move top pointer
 %endmacro
 %macro getHeadOfNum 1
         ;;%1 can be only a register
         ;;%1 <- head
-    mov %1, dword [stack] ; pointer to pointer head of linked list
-    mov %1, dword [%1] ; pointer to head linked list
+    mov %1, dword [stack]       ; pointer to pointer head of linked list
+    mov %1, dword [%1]          ; pointer to head linked list
 %endmacro
 %macro startFunc 1
     push ebp
@@ -127,40 +127,40 @@ section .text
   extern getchar 
   extern fgets 
 main:
-    ; #####INITIALIZING STACK#######
-    mov eax, [esp+4] ; argc
-    cmp eax, 1  ; cheack if argc >1
-    jg update_stack_size ; if there are more than 1 argument then user gave us a size for the stack
-    jmp init_stack
+    ; #####  INITIALIZING OPERAND STACK  #######
+    mov eax, [esp+4]            ; argc
+    cmp eax, 1                  ; cheack if argc >1
+    jg update_stack_size        ; if argc>1 -> argv[1] = stacksize
+    jmp init_stack          
     update_stack_size:
-    mov eax, [esp+8] ; argv
-    mov ecx, [eax+4] ; argv[1]
-    checkLengthPairty ecx ;return value in eax
-    cmp eax, 1
-    je odd
-    jmp even
+        mov eax, [esp+8]        ; put argv pointer in eax
+        mov ecx, [eax+4]        ; put argv[1] in ecx
+        checkLengthPairty ecx   ; chack if number length is odd, return value in eax
+        cmp eax, 1              
+        je odd                  ; if odd
+        jmp even                ; else even
     odd:
-    parseOneChar ecx ;return value in eax
-    jmp updateCapacity
+        parseOneChar ecx        ; returned value in eax
+        jmp updateCapacity      
     even:
-    parseTwochars ecx ;return value in eax
+        parseTwochars ecx       ; returned value in eax
     updateCapacity:
-    mov [capacity], eax
-    printNumber [capacity]
+        mov [capacity], eax     ; [capasity] <- eax = (decimal) capacity
+        printNumber [capacity]
     init_stack:
-        push dword 4
-        push dword [capacity]
-        call calloc
-        mov [stack], eax
+        push dword 4            ; calloc first arg
+        push dword [capacity]   ; calloc second arg
+        call calloc             ; allocate memory for opetand stack
+        mov [stack], eax        ; pointer to end of stack ?????????????????
         mov [stackBase], eax
     
-    ; #######MAIN LOOP#######
+    ; #####  MAIN LOOP  #####
     main_loop:
-        push buff
-        call gets
+        push buff               ; gets only argument
+        call gets               ; load input inti buff
         b1:
-        call posh
-        call gets
+        call posh               ; push new num into operand stack
+        call gets               ;                                   ?????????????
         call posh
         call poop
         jmp main_loop
@@ -181,29 +181,29 @@ main:
     ;     mov Y, X 
     ;     poop
 myexit:
-        push dword [stackBase]
-        call free   
-        mov     ebx, EXIT_SUCCESS
+    push dword [stackBase]      ; push free() only argument
+    call free   
+    mov ebx, EXIT_SUCCESS       ; 
 
 
 
 
 posh:
-    push ebp
+    push ebp                
     mov ebp, esp
 
-    mov eax, [size]
-    cmp eax , [capacity] ; size ?= capacity
-    je overflow
-    incStack
-    mov edx, buff ; we gonna mess with this pointer
+    mov eax, [size]         ; put size in eax
+    cmp eax , [capacity]    ; size ?= capacity
+    je overflow             ; if stack if full
+    incStack                ; else, size++
+    mov edx, buff           ; we gonna mess with this pointer
     b2:
     checkLengthPairty buff
     cmp eax,0
     je evenlength
     oddlength:
-        parseOneChar edx ;returned value in eax
-        mov ecx, eax ; ecx <- data (becuase next macro mess with eax)
+        parseOneChar edx    ; returned value in eax
+        mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         printHexDigit ecx
         pushNewLink ecx
         add edx, 1 
@@ -212,7 +212,7 @@ posh:
         cmp byte [edx], 0
         je  end_posh
         parseTwochars edx
-        mov ecx, eax ; ecx <- data (becuase next macro mess with eax)
+        mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         printHexDigit ecx
         pushNewLink ecx
         add edx, 2
