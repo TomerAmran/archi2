@@ -99,6 +99,13 @@ section .bss            ; uninitilaized vars
     pop ecx
     pop ebx
 %endmacro
+%macro myGets 1
+    pushad              
+    push %1
+    call gets
+    add esp, 4
+    popad
+%endmacro
 %macro pushNewLink 1
     ; %1 data
     myMalloc 5                 ; eax will point to new-link
@@ -178,11 +185,8 @@ main:
     
     ; #####  MAIN LOOP  #####
     main_loop:
-        push buff               ; gets only argument
-        call gets               ; load input inti buff
-        ; parse function 
-        call posh
-        call poop
+        myGets buff 
+        call parseCommand             ; 
         jmp main_loop
 myexit:
     push dword [stackBase]      ; push free() only argument
@@ -230,18 +234,14 @@ posh:
 poop:
     push ebp
     mov ebp, esp
-
     mov eax, [size]
     cmp eax, 0 ;size ?= 0
     je underflow
-
     getHeadOfNum eax
     push eax
     call printNumList
     add esp, 4
-
     decStack
-
     mov esp, ebp
     pop ebp
 
@@ -254,7 +254,6 @@ poop:
 printNumList:
     push ebp
     mov ebp, esp
-
     mov eax, [ebp+8]        ;get link* l (given parameter)
     cmp eax, 0              ;if (l == null_ptr)
     je .end                 ;jmp to end
@@ -264,25 +263,29 @@ printNumList:
     call printNumList       ;recursive call
     add esp, 4              ;clean arg
     popad
-
     mov ebx, 0 ;importent
     mov bl , byte [eax]     ;ebx <- l.value
-
-    ;call printf should be done with proper macro
     printHexDigit ebx
-
     mov eax, [eax+1]        ;eax<-l.next
     myFree eax
-    ; push ebx
-    ; push hexa_format
-    ; call printf
-    ; add esp, 4              ;clean arg
-    ; !!!!should add free of every link of next!!!!
-    
     .end:
     mov esp, ebp
     pop ebx
     ret
 
-    
+parseCommand:
+    push ebp
+    mov ebp, esp
+    mov eax, 0
+    mov al, byte [buff] ;eax <- (char)buff[0]
+    cmp eax ,0x70       ;eax ?= 'p'
+    je user_wants_to_poop
+    call posh
+    jmp end_p
+    user_wants_to_poop:
+    call poop
+    end_p:
+    mov esp, ebp
+    pop ebx
+    ret
 
