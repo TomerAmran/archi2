@@ -1,0 +1,11 @@
+set disassembly-flavor intel
+layout asm
+layout regs
+break main
+break posh
+break posh
+break b1
+break b2
+break b3
+break evenlength
+p/x (char[10])buff
