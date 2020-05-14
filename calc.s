@@ -3,6 +3,7 @@ section	.rodata ;constats
     underflowMsg: db "Error: Insufficient Number of Arguments on Stack",10,0
     format_string: db "%d", 10, 0	; format string
     hexa_format: db "%X",0
+    string_format: db "%s",0
     new_line: db 10
 
 section .data           ; inisiliazed vars
@@ -27,6 +28,14 @@ section .bss            ; uninitilaized vars
     pushad              
     push dword %1
     push hexa_format
+    call printf
+    add esp, 8
+    popad
+%endmacro
+%macro printString 1
+    pushad              
+    push dword %1
+    push string_format
     call printf
     add esp, 8
     popad
@@ -79,6 +88,17 @@ section .bss            ; uninitilaized vars
     pop ecx
     pop ebx
 %endmacro
+%macro myFree 1
+    push ebx
+    push ecx
+    push edx              
+    push dword %1
+    call free
+    add esp, 4
+    pop edx
+    pop ecx
+    pop ebx
+%endmacro
 %macro pushNewLink 1
     ; %1 data
     myMalloc 5                 ; eax will point to new-link
@@ -90,13 +110,13 @@ section .bss            ; uninitilaized vars
     mov [ebx], dword eax        ; head <- new-link
 %endmacro
 %macro incStack 0
-    inc dword [size]
+    add dword [size],1
     add byte [stack], 4         ; move top pointer
     mov eax, [stack]
     mov dword [eax], dword 0    ; init as null pointer
 %endmacro
 %macro decStack 0
-    dec dword [size]
+    sub dword [size], 1
     sub byte [stack], 4         ;move top pointer
 %endmacro
 %macro getHeadOfNum 1
@@ -163,31 +183,11 @@ main:
         ; parse function 
         call posh
         call poop
-        ; call poop
         jmp main_loop
-    ; push dword 4
-    ; push dword defaultCapacity
-    ; int calloc
-    
-    ; poop:
-    ; mov ebx, size-1
-    ; mov X, [stack + 4*ebx]
-    ; dec size
-
-    ; push:
-    ; ; error handeling
-
-    ; myAdd:
-    ;     poop
-    ;     mov Y, X 
-    ;     poop
 myexit:
     push dword [stackBase]      ; push free() only argument
     call free   
     mov ebx, EXIT_SUCCESS       ; 
-
-
-
 
 posh:
     push ebp                ; jump over ret address             
@@ -239,6 +239,7 @@ poop:
     push eax
     call printNumList
     add esp, 4
+
     decStack
 
     mov esp, ebp
@@ -247,9 +248,8 @@ poop:
     ret
     
     underflow:
-    push underflowMsg
-    call printf
-    jmp myexit
+    printString underflowMsg
+    jmp main_loop
 
 printNumList:
     push ebp
@@ -269,54 +269,20 @@ printNumList:
     mov bl , byte [eax]     ;ebx <- l.value
 
     ;call printf should be done with proper macro
-    push ebx
-    push hexa_format
-    call printf
-    add esp, 4              ;clean arg
+    printHexDigit ebx
+
+    mov eax, [eax+1]        ;eax<-l.next
+    myFree eax
+    ; push ebx
+    ; push hexa_format
+    ; call printf
+    ; add esp, 4              ;clean arg
     ; !!!!should add free of every link of next!!!!
+    
     .end:
     mov esp, ebp
     pop ebx
     ret
 
     
-
-; poop:
-;     mov eax, [size]
-;     cmp eax, 0 ;size ?= 0
-;     je underflow
-;         poop_loop:
-;         getHeadOfNum eax ;prev
-;         cmp eax, dword 0
-;         je end_of_poop
-;         mov ebx, dword [eax+1] ;curr
-;         checkIfEnd:
-;         cmp ebx, 0 ;curr.next
-;         je printLink ;
-;         step:  
-;         mov eax, ebx
-;         mov ebx, ecx
-;         jmp checkIfEnd
-;         printLink:
-;             mov edx, 0
-;             mov dl, [ebx]
-;             push dword edx
-;             push hexa_format
-;             call printf
-;             ; push new_line
-;             mov [eax + 1], dword 0
-;             jmp poop_loop
-;     underflow:
-;         push underflowMsg
-;         call printf
-;         jmp myexit
-;     end_of_poop:
-;         decStack
-;         jmp main_loop
-;         mov     eax, SIGEXIT
-;         int     0x80
-;         nop
-
-
-
 
