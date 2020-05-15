@@ -111,12 +111,14 @@ section .bss            ; uninitilaized vars
     add esp, 4
     popad
 %endmacro
-%macro printStack 0
+%macro debug 0
     pushad
+    push dword [size]
     push dword [capacity]              
     push dword [stackBase]
-    call printStack
-    add esp, 8
+    push dword [stack]
+    call debug
+    add esp, 16
     popad
 %endmacro
 %macro pushNewLink 1
@@ -199,7 +201,7 @@ section .text
   extern gets 
   extern getchar 
   extern fgets 
-  extern printStack
+  extern debug
 main:
     ; #####  INITIALIZING OPERAND STACK  #######
     mov eax, [esp+4]            ; argc
@@ -340,7 +342,8 @@ Ed_Edd_n_Eddy: ; add
     mov [edx+1], dword eax
     Addendend:
         mov edx, dword [Z]
-        mov [stack], dword edx
+        mov ecx, dword [stack]
+        mov [ecx], dword edx
         mov esp, ebp
         pop ebp
         ret
@@ -395,6 +398,8 @@ poop:
     add esp, 4          ; pop to void
     popad
     myFree eax
+    mov eax, [stack]
+    mov [eax], dword 0        ;nullinh [stack]
     decStack
     mov esp, ebp    
     pop ebp
@@ -439,7 +444,7 @@ parseCommand:
     cmp eax, 0x71   ;'q'
     je myexit
     cmp eax, 0x73   ;'s'
-    je PrintStack
+    je debugAc
     cmp eax, 43   ;'+'
     je Ed
     
@@ -451,8 +456,8 @@ parseCommand:
     Ed:
     call Ed_Edd_n_Eddy
     jmp end_p
-    PrintStack:
-    printStack
+    debugAc:
+    debug
     jmp end_p
     user_wants_to_poop:
     call poop
