@@ -155,21 +155,26 @@ section .bss            ; uninitilaized vars
     je .end
         %%x:
         cmp dword [x], 0    ;is x null_ptr?
-        je %%y:             ;if yes jump to y
+        je %%y             ;if yes jump to y
         mov edx, [x]        ;edx<- l
         mov ebx, 0
-        add ecx, byte [edx] ;c <- c + l.value
+        add bl, byte [edx] ;bl <- l.value
+        add ecx, ebx ;c <- c + l.value
         mov edx, dword [edx+1]    ;x <- l.next
         mov [x], edx
         %%y:
         cmp dword [y], 0    ;is y null_ptr?
-        je %%z:             ;if yes jump to z
+        je %%z             ;if yes jump to z
         mov edx, [y]        ;edx<- l
-        add ecx, byte [edx] ;c <- c + l.value
+        mov ebx, 0
+        add bl, byte [edx] ;c <- c + l.value
+        add ecx, ebx ;c <- c + l.value
         mov edx, dword [edx+1]  ;y <- l.next
         mov [y], edx
         %%z:
         myMalloc 5
+        mov ebx, 0
+        add bl, byte [edx] ;c <- c + l.value
         mov [eax], byte cl
         mov [eax+1], dword 0 
 
@@ -217,7 +222,8 @@ main:
     ; #####  MAIN LOOP  #####
     main_loop:
         myGets buff 
-        call parseCommand             ; 
+        call parseCommand   
+        call Ed_Edd_n_Eddy          ; 
         jmp main_loop
 myexit:
     myFree [stackBase]   
