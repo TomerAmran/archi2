@@ -12,9 +12,14 @@ section .data           ; inisiliazed vars
 section .bss            ; uninitilaized vars
     stack: resd 1       ; dynamic stack pointer
     stackBase: resd 1   ; pointer to head of stack
-    
     buff: resb 81
-
+    X: resd 1
+    Y: resd 1
+    Z: resd 1
+    x: resd 1
+    y: resd 1
+    z: resd 1
+    
 %define EXIT_SUCCESS 0
 %define SIGEXIT 1
 %define _0 0x30
@@ -143,6 +148,32 @@ section .bss            ; uninitilaized vars
     pop ebp
     ret
 %endmacro
+%macro loopContent 0
+    mov edx, [x]
+    add edx, [y]
+    cmp edx, 0      ;x&y ?!= 0
+    je .end
+        %%x:
+        cmp dword [x], 0    ;is x null_ptr?
+        je %%y:             ;if yes jump to y
+        mov edx, [x]        ;edx<- l
+        mov ebx, 0
+        add ecx, byte [edx] ;c <- c + l.value
+        mov edx, dword [edx+1]    ;x <- l.next
+        mov [x], edx
+        %%y:
+        cmp dword [y], 0    ;is y null_ptr?
+        je %%z:             ;if yes jump to z
+        mov edx, [y]        ;edx<- l
+        add ecx, byte [edx] ;c <- c + l.value
+        mov edx, dword [edx+1]  ;y <- l.next
+        mov [y], edx
+        %%z:
+        myMalloc 5
+        mov [eax], byte cl
+        mov [eax+1], dword 0 
+
+%endmacro
 section .text
   align 16
   global main
@@ -194,6 +225,48 @@ myexit:
     mov eax,  SIGEXIT
     int 0x80 
 
+Ed_Edd_n_Eddy: ; add
+    push ebp
+    mov ebp, esp
+    mov eax, [size]
+    cmp eax, 2      ;eax ?> 1
+    jl underflow
+    getHeadOfNum eax
+    mov [X], dword eax
+    mov [x], dword eax
+    decStack
+    getHeadOfNum eax
+    mov [Y], dword eax
+    mov [y], dword eax
+    mov ecx, 0      ;int carry
+    ; mov [Z], dword 0
+    ; mov [z], dword 0
+    loopContent
+    mov [Z], eax
+    mov [z], eax
+    shr ecx, 8
+    .loop:
+    loopContent
+    mov edx, [z]
+    mov [edx+1], eax    ;l.next<- new-link
+    mov [z], eax        ;z <- l.next
+    shr ecx, 8
+    jmp .loop
+
+    .end:
+    cmp ecx, 0
+    je .endend
+    myMalloc 5
+    mov [eax], byte cl
+    mov [eax+1], dword 0
+    mov edx, [z]
+    mov [edx+1], dword eax
+    .endend:
+        mov edx, dword [Z]
+        mov [stack], dword edx
+        mov esp, ebp
+        pop ebp
+        ret
 
 posh:
     push ebp                ; jump over ret address             
@@ -296,4 +369,5 @@ parseCommand:
     mov esp, ebp
     pop ebx
     ret
+
 
