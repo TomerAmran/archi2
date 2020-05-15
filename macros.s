@@ -21,12 +21,12 @@
  y: resd 1
  z: resd 1
 
-%line 182+1 calc.s
+%line 190+1 calc.s
 [section .text]
 [sectalign 16]
-%line 183+0 calc.s
+%line 191+0 calc.s
 times (((16) - (($-$$) % (16))) % (16)) nop
-%line 184+1 calc.s
+%line 192+1 calc.s
 [global main]
 [extern printf]
 [extern fprintf]
@@ -37,6 +37,7 @@ times (((16) - (($-$$) % (16))) % (16)) nop
 [extern gets]
 [extern getchar]
 [extern fgets]
+[extern printStack]
 main:
 
  mov eax, [esp+4]
@@ -47,88 +48,88 @@ main:
  mov eax, [esp+8]
  mov ecx, [eax+4]
 
-%line 203+0 calc.s
+%line 212+0 calc.s
  mov eax, ecx
- ..@16.looop:
+ ..@17.looop:
  cmp byte [eax], 0
- je ..@16.endofstring
+ je ..@17.endofstring
  inc eax
- jmp ..@16.looop
- ..@16.endofstring:
+ jmp ..@17.looop
+ ..@17.endofstring:
  sub eax , ecx
  and eax, 1
-%line 204+1 calc.s
+%line 213+1 calc.s
  cmp eax, 1
  je odd
  jmp even
  odd:
  mov eax, 0
-%line 208+0 calc.s
+%line 217+0 calc.s
  mov al, byte [ecx]
  cmp eax, 0x41
- jge ..@18.itA_F
+ jge ..@19.itA_F
  sub eax, 0x30
- jmp ..@18.it0_9
- ..@18.itA_F:
+ jmp ..@19.it0_9
+ ..@19.itA_F:
  sub eax, 0x41
  add eax, 10
- ..@18.it0_9:
-%line 209+1 calc.s
+ ..@19.it0_9:
+%line 218+1 calc.s
  jmp updateCapacity
  even:
  mov eax, 0
-%line 211+0 calc.s
+%line 220+0 calc.s
  mov al, [ecx]
  cmp eax, 0x41
- jge ..@20.itA_F
+ jge ..@21.itA_F
  sub eax, 0x30
- jmp ..@20.it0_9
- ..@20.itA_F:
+ jmp ..@21.it0_9
+ ..@21.itA_F:
  sub eax, 0x41
  add eax, 10
- ..@20.it0_9:
+ ..@21.it0_9:
  mov ebx, 0
  mov bl, [ecx+1]
  cmp ebx, 0x41
- jge ..@21.itA_F
+ jge ..@22.itA_F
  sub ebx, 0x30
- jmp ..@21.it0_9
- ..@21.itA_F:
+ jmp ..@22.it0_9
+ ..@22.itA_F:
  sub ebx, 0x41
  add ebx, 10
- ..@21.it0_9:
+ ..@22.it0_9:
  shl eax, 4
  add eax, ebx
-%line 212+1 calc.s
+%line 221+1 calc.s
  updateCapacity:
  mov [capacity], eax
  push dword [capacity]
-%line 214+0 calc.s
+%line 223+0 calc.s
  push format_string
  call printf
-%line 215+1 calc.s
+%line 224+1 calc.s
  init_stack:
  push dword 4
  push dword [capacity]
  call calloc
  mov [stack], eax
+ sub dword[stack], 4
  mov [stackBase], eax
 
 
  main_loop:
  pushad
-%line 224+0 calc.s
+%line 234+0 calc.s
  push buff
  call gets
  add esp, 4
  popad
-%line 225+1 calc.s
+%line 235+1 calc.s
  call parseCommand
- call Ed_Edd_n_Eddy
  jmp main_loop
 myexit:
  push ebx
-%line 229+0 calc.s
+%line 238+0 calc.s
  push ecx
  push edx
  push dword [stackBase]
@@ -137,7 +138,7 @@ myexit:
  pop edx
  pop ecx
  pop ebx
-%line 230+1 calc.s
+%line 239+1 calc.s
  mov ebx, 0
  mov eax, 1
  int 0x80
@@ -149,53 +150,54 @@ Ed_Edd_n_Eddy:
  cmp eax, 2
  jl underflow
 
-%line 240+0 calc.s
+%line 249+0 calc.s
 
  mov eax, dword [stack]
  mov eax, dword [eax]
-%line 241+1 calc.s
+%line 250+1 calc.s
  mov [X], dword eax
  mov [x], dword eax
  sub dword [size], 1
-%line 243+0 calc.s
+%line 252+0 calc.s
  sub byte [stack], 4
-%line 244+1 calc.s
+%line 253+1 calc.s
 
-%line 244+0 calc.s
+%line 253+0 calc.s
 
  mov eax, dword [stack]
  mov eax, dword [eax]
-%line 245+1 calc.s
+%line 254+1 calc.s
  mov [Y], dword eax
  mov [y], dword eax
  mov ecx, 0
 
 
+
  mov edx, [x]
-%line 250+0 calc.s
  add edx, [y]
  cmp edx, 0
- je .end
- ..@28.x:
+ je Addend
+ x1:
  cmp dword [x], 0
- je ..@28.y
+ je y1
  mov edx, [x]
  mov ebx, 0
  add bl, byte [edx]
  add ecx, ebx
  mov edx, dword [edx+1]
  mov [x], edx
- ..@28.y:
+ y1:
  cmp dword [y], 0
- je ..@28.z
+ je z1
  mov edx, [y]
  mov ebx, 0
  add bl, byte [edx]
  add ecx, ebx
  mov edx, dword [edx+1]
  mov [y], edx
- ..@28.z:
+ z1:
  push ebx
+%line 283+0 calc.s
  push ecx
  push edx
  push dword 5
@@ -204,41 +206,44 @@ Ed_Edd_n_Eddy:
  pop edx
  pop ecx
  pop ebx
- mov ebx, 0
- add bl, byte [edx]
+%line 284+1 calc.s
  mov [eax], byte cl
  mov [eax+1], dword 0
 
-%line 251+1 calc.s
+
+
  mov [Z], eax
  mov [z], eax
  shr ecx, 8
- .loop:
+ Addloop:
+
+
  mov edx, [x]
-%line 255+0 calc.s
  add edx, [y]
  cmp edx, 0
- je .end
- ..@30.x:
+ je Addend
+
+ x2:
  cmp dword [x], 0
- je ..@30.y
+ je y2
  mov edx, [x]
  mov ebx, 0
  add bl, byte [edx]
  add ecx, ebx
  mov edx, dword [edx+1]
  mov [x], edx
- ..@30.y:
+ y2:
  cmp dword [y], 0
- je ..@30.z
+ je z2
  mov edx, [y]
  mov ebx, 0
  add bl, byte [edx]
  add ecx, ebx
  mov edx, dword [edx+1]
  mov [y], edx
- ..@30.z:
+ z2:
  push ebx
+%line 319+0 calc.s
  push ecx
  push edx
  push dword 5
@@ -247,23 +252,25 @@ Ed_Edd_n_Eddy:
  pop edx
  pop ecx
  pop ebx
- mov ebx, 0
- add bl, byte [edx]
+%line 320+1 calc.s
  mov [eax], byte cl
  mov [eax+1], dword 0
 
-%line 256+1 calc.s
+
+
+
+
  mov edx, [z]
  mov [edx+1], eax
  mov [z], eax
  shr ecx, 8
- jmp .loop
+ jmp Addloop
 
- .end:
+ Addend:
  cmp ecx, 0
- je .endend
+ je Addendend
  push ebx
-%line 265+0 calc.s
+%line 336+0 calc.s
  push ecx
  push edx
  push dword 5
@@ -272,12 +279,12 @@ Ed_Edd_n_Eddy:
  pop edx
  pop ecx
  pop ebx
-%line 266+1 calc.s
+%line 337+1 calc.s
  mov [eax], byte cl
  mov [eax+1], dword 0
  mov edx, [z]
  mov [edx+1], dword eax
- .endend:
+ Addendend:
  mov edx, dword [Z]
  mov [stack], dword edx
  mov esp, ebp
@@ -292,44 +299,44 @@ posh:
  cmp eax , [capacity]
  je overflow
  add dword [size],1
-%line 284+0 calc.s
+%line 355+0 calc.s
  add byte [stack], 4
  mov eax, [stack]
  mov dword [eax], dword 0
-%line 285+1 calc.s
+%line 356+1 calc.s
  mov edx, buff
  b2:
 
-%line 287+0 calc.s
+%line 358+0 calc.s
  mov eax, buff
- ..@34.looop:
+ ..@33.looop:
  cmp byte [eax], 0
- je ..@34.endofstring
+ je ..@33.endofstring
  inc eax
- jmp ..@34.looop
- ..@34.endofstring:
+ jmp ..@33.looop
+ ..@33.endofstring:
  sub eax , buff
  and eax, 1
-%line 288+1 calc.s
+%line 359+1 calc.s
  cmp eax,0
  je evenlength
  oddlength:
  mov eax, 0
-%line 291+0 calc.s
+%line 362+0 calc.s
  mov al, byte [edx]
  cmp eax, 0x41
- jge ..@36.itA_F
+ jge ..@35.itA_F
  sub eax, 0x30
- jmp ..@36.it0_9
- ..@36.itA_F:
+ jmp ..@35.it0_9
+ ..@35.itA_F:
  sub eax, 0x41
  add eax, 10
- ..@36.it0_9:
-%line 292+1 calc.s
+ ..@35.it0_9:
+%line 363+1 calc.s
  mov ecx, eax
 
 
-%line 294+0 calc.s
+%line 365+0 calc.s
  push ebx
  push ecx
  push edx
@@ -345,40 +352,40 @@ posh:
  mov [eax+1], dword ebx
  mov ebx, dword [stack]
  mov [ebx], dword eax
-%line 295+1 calc.s
+%line 366+1 calc.s
  add edx, 1
  b3:
  evenlength:
  cmp byte [edx], 0
  je end_posh
  mov eax, 0
-%line 300+0 calc.s
+%line 371+0 calc.s
  mov al, [edx]
  cmp eax, 0x41
- jge ..@40.itA_F
+ jge ..@39.itA_F
  sub eax, 0x30
- jmp ..@40.it0_9
- ..@40.itA_F:
+ jmp ..@39.it0_9
+ ..@39.itA_F:
  sub eax, 0x41
  add eax, 10
- ..@40.it0_9:
+ ..@39.it0_9:
  mov ebx, 0
  mov bl, [edx+1]
  cmp ebx, 0x41
- jge ..@41.itA_F
+ jge ..@40.itA_F
  sub ebx, 0x30
- jmp ..@41.it0_9
- ..@41.itA_F:
+ jmp ..@40.it0_9
+ ..@40.itA_F:
  sub ebx, 0x41
  add ebx, 10
- ..@41.it0_9:
+ ..@40.it0_9:
  shl eax, 4
  add eax, ebx
-%line 301+1 calc.s
+%line 372+1 calc.s
  mov ecx, eax
 
 
-%line 303+0 calc.s
+%line 374+0 calc.s
  push ebx
  push ecx
  push edx
@@ -394,7 +401,7 @@ posh:
  mov [eax+1], dword ebx
  mov ebx, dword [stack]
  mov [ebx], dword eax
-%line 304+1 calc.s
+%line 375+1 calc.s
  add edx, 2
  jmp evenlength
  end_posh:
@@ -403,13 +410,13 @@ posh:
  ret
  overflow:
  pushad
-%line 311+0 calc.s
+%line 382+0 calc.s
  push dword overflowMsg
  push string_format
  call printf
  add esp, 8
  popad
-%line 312+1 calc.s
+%line 383+1 calc.s
  jmp main_loop
 
 poop:
@@ -419,18 +426,18 @@ poop:
  cmp eax, 0
  je underflow
 
-%line 320+0 calc.s
+%line 391+0 calc.s
 
  mov eax, dword [stack]
  mov eax, dword [eax]
-%line 321+1 calc.s
+%line 392+1 calc.s
  pushad
  push eax
  call printNumList
  add esp, 4
  popad
  push ebx
-%line 326+0 calc.s
+%line 397+0 calc.s
  push ecx
  push edx
  push dword eax
@@ -439,32 +446,32 @@ poop:
  pop edx
  pop ecx
  pop ebx
-%line 327+1 calc.s
+%line 398+1 calc.s
  sub dword [size], 1
-%line 327+0 calc.s
+%line 398+0 calc.s
  sub byte [stack], 4
-%line 328+1 calc.s
+%line 399+1 calc.s
  mov esp, ebp
  pop ebp
  pushad
-%line 330+0 calc.s
+%line 401+0 calc.s
  push dword mynew_line
  push string_format
  call printf
  add esp, 8
  popad
-%line 331+1 calc.s
+%line 402+1 calc.s
  ret
 
  underflow:
  pushad
-%line 334+0 calc.s
+%line 405+0 calc.s
  push dword underflowMsg
  push string_format
  call printf
  add esp, 8
  popad
-%line 335+1 calc.s
+%line 406+1 calc.s
  mov esp, ebp
  pop ebp
  ret
@@ -484,16 +491,16 @@ printNumList:
  mov ebx, 0
  mov bl , byte [eax]
  pushad
-%line 353+0 calc.s
+%line 424+0 calc.s
  push dword ebx
  push hexa_format
  call printf
  add esp, 8
  popad
-%line 354+1 calc.s
+%line 425+1 calc.s
  mov eax, dword [eax+1]
  push ebx
-%line 355+0 calc.s
+%line 426+0 calc.s
  push ecx
  push edx
  push dword eax
@@ -502,7 +509,7 @@ printNumList:
  pop edx
  pop ecx
  pop ebx
-%line 356+1 calc.s
+%line 427+1 calc.s
  .end:
  mov esp, ebp
  pop ebp
@@ -517,10 +524,32 @@ parseCommand:
  je user_wants_to_poop
  cmp eax, 0x71
  je myexit
+ cmp eax, 0x73
+ je PrintStack
+ cmp eax, 43
+ je Ed
+
+ Posh:
  call posh
+ jmp end_p
+
+
+ Ed:
+ call Ed_Edd_n_Eddy
+ jmp end_p
+ PrintStack:
+ pushad
+%line 455+0 calc.s
+ push dword [capacity]
+ push dword [stackBase]
+ call printStack
+ add esp, 8
+ popad
+%line 456+1 calc.s
  jmp end_p
  user_wants_to_poop:
  call poop
+ jmp end_p
  end_p:
  mov esp, ebp
  pop ebx

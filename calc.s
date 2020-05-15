@@ -111,6 +111,14 @@ section .bss            ; uninitilaized vars
     add esp, 4
     popad
 %endmacro
+%macro printStack 0
+    pushad
+    push dword [capacity]              
+    push dword [stackBase]
+    call printStack
+    add esp, 8
+    popad
+%endmacro
 %macro pushNewLink 1
     ; %1 data
     myMalloc 5                 ; eax will point to new-link
@@ -191,6 +199,7 @@ section .text
   extern gets 
   extern getchar 
   extern fgets 
+  extern printStack
 main:
     ; #####  INITIALIZING OPERAND STACK  #######
     mov eax, [esp+4]            ; argc
@@ -216,14 +225,14 @@ main:
         push dword 4            ; calloc first arg
         push dword [capacity]   ; calloc second arg
         call calloc             ; allocate memory for opetand stack. eax <- stack pointer
-        mov [stack], eax        ; pointer to end of stack
+        mov [stack], eax       ; pointer to end of stack
+        sub dword[stack], 4
         mov [stackBase], eax
     
     ; #####  MAIN LOOP  #####
     main_loop:
         myGets buff 
-        call parseCommand   
-        call Ed_Edd_n_Eddy          ; 
+        call parseCommand
         jmp main_loop
 myexit:
     myFree [stackBase]   
@@ -247,27 +256,89 @@ Ed_Edd_n_Eddy: ; add
     mov ecx, 0      ;int carry
     ; mov [Z], dword 0
     ; mov [z], dword 0
-    loopContent
+   
+   mov edx, [x]
+    add edx, [y]
+    cmp edx, 0      ;x&y ?!= 0
+    je Addend
+        x1:
+        cmp dword [x], 0    ;is x null_ptr?
+        je y1             ;if yes jump to y
+        mov edx, [x]        ;edx<- l
+        mov ebx, 0
+        add bl, byte [edx] ;bl <- l.value
+        add ecx, ebx ;c <- c + l.value
+        mov edx, dword [edx+1]    ;x <- l.next
+        mov [x], edx
+        y1:
+        cmp dword [y], 0    ;is y null_ptr?
+        je z1             ;if yes jump to z
+        mov edx, [y]        ;edx<- l
+        mov ebx, 0
+        add bl, byte [edx] ;c <- c + l.value
+        add ecx, ebx ;c <- c + l.value
+        mov edx, dword [edx+1]  ;y <- l.next
+        mov [y], edx
+        z1:
+        myMalloc 5
+        mov [eax], byte cl
+        mov [eax+1], dword 0 
+
+
+
     mov [Z], eax
     mov [z], eax
     shr ecx, 8
-    .loop:
-    loopContent
+    Addloop:
+    
+
+            mov edx, [x]
+        add edx, [y]
+        cmp edx, 0      ;x&y ?!= 0
+        je Addend
+
+        x2:
+        cmp dword [x], 0    ;is x null_ptr?
+        je y2             ;if yes jump to y
+        mov edx, [x]        ;edx<- l
+        mov ebx, 0
+        add bl, byte [edx] ;bl <- l.value
+        add ecx, ebx ;c <- c + l.value
+        mov edx, dword [edx+1]    ;x <- l.next
+        mov [x], edx
+        y2:
+        cmp dword [y], 0    ;is y null_ptr?
+        je z2             ;if yes jump to z
+        mov edx, [y]        ;edx<- l
+        mov ebx, 0
+        add bl, byte [edx] ;c <- c + l.value
+        add ecx, ebx ;c <- c + l.value
+        mov edx, dword [edx+1]  ;y <- l.next
+        mov [y], edx
+        z2:
+        myMalloc 5
+        mov [eax], byte cl
+        mov [eax+1], dword 0 
+
+
+
+
+
     mov edx, [z]
     mov [edx+1], eax    ;l.next<- new-link
     mov [z], eax        ;z <- l.next
     shr ecx, 8
-    jmp .loop
+    jmp Addloop
 
-    .end:
+    Addend:
     cmp ecx, 0
-    je .endend
+    je Addendend
     myMalloc 5
     mov [eax], byte cl
     mov [eax+1], dword 0
     mov edx, [z]
     mov [edx+1], dword eax
-    .endend:
+    Addendend:
         mov edx, dword [Z]
         mov [stack], dword edx
         mov esp, ebp
@@ -363,14 +434,29 @@ parseCommand:
     mov ebp, esp
     mov eax, 0
     mov al, byte [buff] ;eax <- (char)buff[0]
-    cmp eax ,0x70       ;eax ?= 'p'
+    cmp eax ,0x70   ;'p'
     je user_wants_to_poop
-    cmp eax, 0x71
+    cmp eax, 0x71   ;'q'
     je myexit
+    cmp eax, 0x73   ;'s'
+    je PrintStack
+    cmp eax, 43   ;'+'
+    je Ed
+    
+    Posh:
     call posh
+    jmp end_p
+    
+    
+    Ed:
+    call Ed_Edd_n_Eddy
+    jmp end_p
+    PrintStack:
+    printStack
     jmp end_p
     user_wants_to_poop:
     call poop
+    jmp end_p
     end_p:
     mov esp, ebp
     pop ebx

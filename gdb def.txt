@@ -2,10 +2,22 @@ set disassembly-flavor intel
 layout asm
 layout regs
 break main
+break Ed_Edd_n_Eddy
 break posh
-break posh
+break poop
 break b1
 break b2
 break b3
 break evenlength
+break x1
+break y1
+break z1
+break Addloop
+break x2
+break y2
+break z2
+break Addend
+break Addendend
+
+
 p/x (char[10])buff
