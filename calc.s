@@ -189,9 +189,11 @@ main:
         call parseCommand             ; 
         jmp main_loop
 myexit:
-    push dword [stackBase]      ; push free() only argument
-    call free   
-    mov ebx, EXIT_SUCCESS       ; 
+    myFree [stackBase]   
+    mov ebx, EXIT_SUCCESS
+    mov eax,  SIGEXIT
+    int 0x80 
+
 
 posh:
     push ebp                ; jump over ret address             
@@ -234,14 +236,17 @@ poop:
     push ebp
     mov ebp, esp
     mov eax, [size]
-    cmp eax, 0 ;size ?= 0
+    cmp eax, 0      ;size ?= 0
     je underflow
     getHeadOfNum eax
-    push eax
-    call printNumList
-    add esp, 4
+    pushad
+    push eax            ;push first link
+    call printNumList   ;recursize function
+    add esp, 4          ; pop to void
+    popad
+    myFree eax
     decStack
-    mov esp, ebp
+    mov esp, ebp    
     pop ebp
     printString mynew_line
     ret
@@ -262,16 +267,16 @@ printNumList:
     pushad                  ;backup registers
     push ebx                ;argument of recursive call
     call printNumList       ;recursive call
-    add esp, 4              ;clean arg
+    add esp, 4              ;pop to void
     popad
     mov ebx, 0 ;importent
     mov bl , byte [eax]     ;ebx <- l.value
     printHexDigit ebx
-    mov eax, [eax+1]        ;eax<-l.next
+    mov eax, dword [eax+1]        ;eax<-l.next
     myFree eax
     .end:
     mov esp, ebp
-    pop ebx
+    pop ebp
     ret
 
 parseCommand:
@@ -281,6 +286,8 @@ parseCommand:
     mov al, byte [buff] ;eax <- (char)buff[0]
     cmp eax ,0x70       ;eax ?= 'p'
     je user_wants_to_poop
+    cmp eax, 0x71
+    je myexit
     call posh
     jmp end_p
     user_wants_to_poop:

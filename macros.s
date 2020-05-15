@@ -121,9 +121,21 @@ main:
  call parseCommand
  jmp main_loop
 myexit:
+ push ebx
+%line 192+0 calc.s
+ push ecx
+ push edx
  push dword [stackBase]
  call free
+ add esp, 4
+ pop edx
+ pop ecx
+ pop ebx
+%line 193+1 calc.s
  mov ebx, 0
+ mov eax, 1
+ int 0x80
+
 
 posh:
  push ebp
@@ -133,44 +145,44 @@ posh:
  cmp eax , [capacity]
  je overflow
  add dword [size],1
-%line 203+0 calc.s
+%line 205+0 calc.s
  add byte [stack], 4
  mov eax, [stack]
  mov dword [eax], dword 0
-%line 204+1 calc.s
+%line 206+1 calc.s
  mov edx, buff
  b2:
 
-%line 206+0 calc.s
+%line 208+0 calc.s
  mov eax, buff
- ..@25.looop:
+ ..@26.looop:
  cmp byte [eax], 0
- je ..@25.endofstring
+ je ..@26.endofstring
  inc eax
- jmp ..@25.looop
- ..@25.endofstring:
+ jmp ..@26.looop
+ ..@26.endofstring:
  sub eax , buff
  and eax, 1
-%line 207+1 calc.s
+%line 209+1 calc.s
  cmp eax,0
  je evenlength
  oddlength:
  mov eax, 0
-%line 210+0 calc.s
+%line 212+0 calc.s
  mov al, byte [edx]
  cmp eax, 0x41
- jge ..@27.itA_F
+ jge ..@28.itA_F
  sub eax, 0x30
- jmp ..@27.it0_9
- ..@27.itA_F:
+ jmp ..@28.it0_9
+ ..@28.itA_F:
  sub eax, 0x41
  add eax, 10
- ..@27.it0_9:
-%line 211+1 calc.s
+ ..@28.it0_9:
+%line 213+1 calc.s
  mov ecx, eax
 
 
-%line 213+0 calc.s
+%line 215+0 calc.s
  push ebx
  push ecx
  push edx
@@ -186,40 +198,40 @@ posh:
  mov [eax+1], dword ebx
  mov ebx, dword [stack]
  mov [ebx], dword eax
-%line 214+1 calc.s
+%line 216+1 calc.s
  add edx, 1
  b3:
  evenlength:
  cmp byte [edx], 0
  je end_posh
  mov eax, 0
-%line 219+0 calc.s
+%line 221+0 calc.s
  mov al, [edx]
  cmp eax, 0x41
- jge ..@31.itA_F
+ jge ..@32.itA_F
  sub eax, 0x30
- jmp ..@31.it0_9
- ..@31.itA_F:
+ jmp ..@32.it0_9
+ ..@32.itA_F:
  sub eax, 0x41
  add eax, 10
- ..@31.it0_9:
+ ..@32.it0_9:
  mov ebx, 0
  mov bl, [edx+1]
  cmp ebx, 0x41
- jge ..@32.itA_F
+ jge ..@33.itA_F
  sub ebx, 0x30
- jmp ..@32.it0_9
- ..@32.itA_F:
+ jmp ..@33.it0_9
+ ..@33.itA_F:
  sub ebx, 0x41
  add ebx, 10
- ..@32.it0_9:
+ ..@33.it0_9:
  shl eax, 4
  add eax, ebx
-%line 220+1 calc.s
+%line 222+1 calc.s
  mov ecx, eax
 
 
-%line 222+0 calc.s
+%line 224+0 calc.s
  push ebx
  push ecx
  push edx
@@ -235,7 +247,7 @@ posh:
  mov [eax+1], dword ebx
  mov ebx, dword [stack]
  mov [ebx], dword eax
-%line 223+1 calc.s
+%line 225+1 calc.s
  add edx, 2
  jmp evenlength
  end_posh:
@@ -244,13 +256,13 @@ posh:
  ret
  overflow:
  pushad
-%line 230+0 calc.s
+%line 232+0 calc.s
  push dword overflowMsg
  push string_format
  call printf
  add esp, 8
  popad
-%line 231+1 calc.s
+%line 233+1 calc.s
  jmp main_loop
 
 poop:
@@ -260,41 +272,52 @@ poop:
  cmp eax, 0
  je underflow
 
-%line 239+0 calc.s
+%line 241+0 calc.s
 
  mov eax, dword [stack]
  mov eax, dword [eax]
-%line 240+1 calc.s
+%line 242+1 calc.s
+ pushad
  push eax
  call printNumList
  add esp, 4
+ popad
+ push ebx
+%line 247+0 calc.s
+ push ecx
+ push edx
+ push dword eax
+ call free
+ add esp, 4
+ pop edx
+ pop ecx
+ pop ebx
+%line 248+1 calc.s
  sub dword [size], 1
-%line 243+0 calc.s
+%line 248+0 calc.s
  sub byte [stack], 4
-%line 244+1 calc.s
+%line 249+1 calc.s
  mov esp, ebp
  pop ebp
- newline:
  pushad
-%line 247+0 calc.s
+%line 251+0 calc.s
  push dword mynew_line
  push string_format
  call printf
  add esp, 8
  popad
-%line 248+1 calc.s
-
+%line 252+1 calc.s
  ret
 
  underflow:
  pushad
-%line 252+0 calc.s
+%line 255+0 calc.s
  push dword underflowMsg
  push string_format
  call printf
  add esp, 8
  popad
-%line 253+1 calc.s
+%line 256+1 calc.s
  mov esp, ebp
  pop ebp
  ret
@@ -314,16 +337,16 @@ printNumList:
  mov ebx, 0
  mov bl , byte [eax]
  pushad
-%line 271+0 calc.s
+%line 274+0 calc.s
  push dword ebx
  push hexa_format
  call printf
  add esp, 8
  popad
-%line 272+1 calc.s
- mov eax, [eax+1]
+%line 275+1 calc.s
+ mov eax, dword [eax+1]
  push ebx
-%line 273+0 calc.s
+%line 276+0 calc.s
  push ecx
  push edx
  push dword eax
@@ -332,10 +355,10 @@ printNumList:
  pop edx
  pop ecx
  pop ebx
-%line 274+1 calc.s
+%line 277+1 calc.s
  .end:
  mov esp, ebp
- pop ebx
+ pop ebp
  ret
 
 parseCommand:
@@ -345,6 +368,8 @@ parseCommand:
  mov al, byte [buff]
  cmp eax ,0x70
  je user_wants_to_poop
+ cmp eax, 0x71
+ je myexit
  call posh
  jmp end_p
  user_wants_to_poop:
