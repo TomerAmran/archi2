@@ -1,14 +1,11 @@
 set disassembly-flavor intel
 layout asm
 layout regs
-break main
+break freeLinkedList
+break freeLinkedList.b5
+break b5
 break Ed_Edd_n_Eddy
-break posh
-break poop
-break b1
-break b2
-break b3
-break evenlength
+break printN
 break x1
 break y1
 break z1

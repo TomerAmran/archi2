@@ -189,6 +189,15 @@ section .bss            ; uninitilaized vars
         mov [eax+1], dword 0 
 
 %endmacro
+%macro FreeNumber 1
+    pushad
+    mov eax, dword %1
+    push dword eax
+    call freeLinkedList
+    myFree eax
+    add esp, 4
+    popad
+%endmacro
 section .text
   align 16
   global main
@@ -237,6 +246,13 @@ main:
         call parseCommand
         jmp main_loop
 myexit:
+    mov ecx, [size]
+    freeLoop:
+        mov eax, [stackBase]
+        mov ebx, dword [eax+4*(ecx-1)]
+        FreeNumber ebx
+        mov [eax+4*(ecx-1)], dword 0
+        loop freeLoop, ecx 
     myFree [stackBase]   
     mov ebx, EXIT_SUCCESS
     mov eax,  SIGEXIT
@@ -248,13 +264,19 @@ Ed_Edd_n_Eddy: ; add
     mov eax, [size]
     cmp eax, 2      ;eax ?> 1
     jl underflow
+    ; mov eax, dword[stack]
     getHeadOfNum eax
     mov [X], dword eax
     mov [x], dword eax
+    mov eax, dword [stack]
+    mov [eax], dword 0
     decStack
+    ; mov eax, dword[stack]
     getHeadOfNum eax
     mov [Y], dword eax
     mov [y], dword eax
+    mov eax, dword [stack]
+    mov [eax], dword 0
     mov ecx, 0      ;int carry
     ; mov [Z], dword 0
     ; mov [z], dword 0
@@ -341,6 +363,8 @@ Ed_Edd_n_Eddy: ; add
     mov edx, [z]
     mov [edx+1], dword eax
     Addendend:
+        FreeNumber [X]
+        FreeNumber [Y]
         mov edx, dword [Z]
         mov ecx, dword [stack]
         mov [ecx], dword edx
@@ -468,3 +492,22 @@ parseCommand:
     ret
 
 
+freeLinkedList:
+    push ebp
+    mov ebp, esp
+    mov eax, [ebp+8]        ;get link* l (given parameter)
+    mov ebx , dword [eax+1] ;ebx <- l.next
+    cmp ebx, 0              ;if (l == null_ptr)
+    je .end                 ;jmp to end
+    pushad                  ;backup registers
+    push ebx                ;argument of recursive call
+    call freeLinkedList    ;recursive call
+    add esp, 4              ;pop to void
+    popad
+    .b5:
+    mov [eax+1], dword 0 
+    myFree ebx
+    .end:
+    mov esp, ebp
+    pop ebp
+    ret
