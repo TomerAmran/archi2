@@ -237,69 +237,69 @@ main:
         call parseCommand
         jmp main_loop
 myexit:
-    myFree [stackBase]   
-    mov ebx, EXIT_SUCCESS
-    mov eax,  SIGEXIT
+    myFree [stackBase]          ; free operand stack
+    mov eax,  SIGEXIT           ; call exit sys_call
+    mov ebx, EXIT_SUCCESS       ; exit msg - seccess
     int 0x80 
 
-Ed_Edd_n_Eddy: ; add
-    push ebp
+Ed_Edd_n_Eddy:              ; addition
+    push ebp                ; save ret address
     mov ebp, esp
-    mov eax, [size]
-    cmp eax, 2      ;eax ?> 1
-    jl underflow
-    getHeadOfNum eax
-    mov [X], dword eax
-    mov [x], dword eax
-    decStack
-    getHeadOfNum eax
-    mov [Y], dword eax
-    mov [y], dword eax
-    mov ecx, 0      ;int carry
+    mov eax, [size]         ; eax <- curr stack size
+    cmp eax, 2              ; if eax < 2
+    jl underflow            ; return underflow
+    getHeadOfNum eax        ; eax <- pointer to first number in stack
+    mov [X], dword eax      ; X <- pointer to first num
+    mov [x], dword eax      ; x <- pointer to first num
+    decStack                ; move 'stack' pointer to second num, decreas size
+    getHeadOfNum eax        ; eax <- pointer to first (=second) number in stack
+    mov [Y], dword eax      ; Y <- pointer to second num
+    mov [y], dword eax      ; y <- pointer to second num
+    mov ecx, 0              ; ecx <- int carry
     ; mov [Z], dword 0
     ; mov [z], dword 0
    
-   mov edx, [x]
-    add edx, [y]
-    cmp edx, 0      ;x&y ?!= 0
-    je Addend
-        x1:
-        cmp dword [x], 0    ;is x null_ptr?
-        je y1             ;if yes jump to y
-        mov edx, [x]        ;edx<- l
+    mov edx, [x]            ; edx <- pointer to link  
+    add edx, [y]            ; edx <- pointer to xl + pointer to yl
+    cmp edx, 0              ; x & y ? != 0
+    je Addend               ; end of addition (both null_ptr)
+    x1:
+        cmp dword [x], 0        ; is x null_ptr?
+        je y1                   ; if yes jump to check y
+        mov edx, [x]            ; edx <- pointer to xl
+        mov ebx, 0              ; preper ebx
+        add bl, byte [edx]      ; bl <- xl.value
+        add ecx, ebx            ; c <- c + xl.value
+        mov edx, dword [edx+1]  ; edx <- xl.next
+        mov [x], edx            ; x <- edx (=xl.next)
+    y1:
+        cmp dword [y], 0        ; is y null_ptr?
+        je z1                   ; if yes jump to z
+        mov edx, [y]            ; edx <- yl
         mov ebx, 0
-        add bl, byte [edx] ;bl <- l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]    ;x <- l.next
-        mov [x], edx
-        y1:
-        cmp dword [y], 0    ;is y null_ptr?
-        je z1             ;if yes jump to z
-        mov edx, [y]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]  ;y <- l.next
-        mov [y], edx
-        z1:
-        myMalloc 5
-        mov [eax], byte cl
-        mov [eax+1], dword 0 
+        add bl, byte [edx]      ; c <- c + yl.value
+        add ecx, ebx            ; c <- c + yl.value
+        mov edx, dword [edx+1]  ; edx <- yl.next
+        mov [y], edx            ; y <- edx (=yl.next)
+    z1:
+        myMalloc 5              ; allocate new link for Z
+        mov [eax], byte cl      ; link value <- 8 lsb of carry
+        mov [eax+1], dword 0    ; link pointr <- null
+
+        mov [Z], eax       ; update Z <- first link address
+        mov [z], eax       ; z <- first link address
+        shr ecx, 8         ; decrease carry by 8 bits
 
 
-
-    mov [Z], eax
-    mov [z], eax
-    shr ecx, 8
     Addloop:
     
 
-            mov edx, [x]
+        mov edx, [x]
         add edx, [y]
         cmp edx, 0      ;x&y ?!= 0
         je Addend
 
-        x2:
+    x2:
         cmp dword [x], 0    ;is x null_ptr?
         je y2             ;if yes jump to y
         mov edx, [x]        ;edx<- l
@@ -308,7 +308,7 @@ Ed_Edd_n_Eddy: ; add
         add ecx, ebx ;c <- c + l.value
         mov edx, dword [edx+1]    ;x <- l.next
         mov [x], edx
-        y2:
+    y2:
         cmp dword [y], 0    ;is y null_ptr?
         je z2             ;if yes jump to z
         mov edx, [y]        ;edx<- l
@@ -317,7 +317,7 @@ Ed_Edd_n_Eddy: ; add
         add ecx, ebx ;c <- c + l.value
         mov edx, dword [edx+1]  ;y <- l.next
         mov [y], edx
-        z2:
+    z2:
         myMalloc 5
         mov [eax], byte cl
         mov [eax+1], dword 0 
