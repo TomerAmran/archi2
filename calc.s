@@ -453,29 +453,33 @@ duplicate:
     mov [ebx], dword eax    ; [[stack]] <- new link address
 
     ; copy xlink data
-    mov ebx, byte [edx]     ; ebx <- xl data 
-    mov ecx, 0              ; init ecx
-    mov ecx, [z]            ; ecx <- [z] (new link)
-    mov [ecx], byte ebx     ; zl data <- xl data
-    mov [ecx+1], dword 0    ; zl points to null
+    mov ecx, byte [edx]     ; ebx <- xl data 
+    mov [eax], byte ecx     ; zl data <- xl data
+    mov [eax+1], dword 0    ; zl points to null
 
+    mov ebx, dword [z]      ; in loop ebx holds z !
+
+    ; eax = the created new link
+    ; ebx = the previeus link
+    ; ecx = data in origin link
+    ; edx = the origin link
     .loop:
     ; x++
-    mov edx, [x]            ; edx <- [x] (curr link to duplicate)
-    mov edx, dword [edx+1]  ; edx <- pointer to next link
+    mov edx, dword [edx+1]  ; edx([x]) <- pointer to next link
     
-    ; end of link list?
-    cmp edx, 0          ; edx holds poiner to next link
-    je end              ; if pointer to null, finish
+    ; end ?
+    cmp dword edx, 0        ; edx holds poiner to next link
+    je end                  ; if pointer to null, finish
 
     ; create new link
     myMalloc 5              ; create new link for z, return in eax
-    mov [ecx+1], dword eax  ; ecx holds z, z.next <- eax
-    mov [z], dword eax      ; z <- next link
-    mov ecx, dword [z]            ; ecx <- new link
-    mov ebx, byte [edx]     ; ebx <- xl data 
-    mov [ecx], byte ebx     ; zl data <- xl data
+    mov [ebx+1], dword eax  ; ecx holds z, z.next <- eax
+    mov ebx, dword eax      ; z <- next link
+    mov ecx, byte [edx]     ; ebx <- xl data 
+    mov [ebx], byte ecx     ; zl data <- xl data
+    mov [ebx+1], dword 0    ; zl.next <- 0
 
+    jmp loop
 
     .end:
     mov esp, ebp
