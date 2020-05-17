@@ -259,26 +259,26 @@ Ed_Edd_n_Eddy:              ; addition
     mov edx, [x]            ; edx <- pointer to link  
     add edx, [y]            ; edx <- pointer to xl + pointer to yl
     cmp edx, 0              ; x & y ? != 0
-    je Addend               ; end of addition (both null_ptr)
-    x1:
+    je .Addend               ; end of addition (both null_ptr)
+    .x1:
         cmp dword [x], 0        ; is x null_ptr?
-        je y1                   ; if yes jump to check y
+        je .y1                   ; if yes jump to check y
         mov edx, [x]            ; edx <- pointer to xl
         mov ebx, 0              ; preper ebx
         add bl, byte [edx]      ; bl <- xl.value
         add ecx, ebx            ; c <- c + xl.value
         mov edx, dword [edx+1]  ; edx <- xl.next
         mov [x], edx            ; x <- edx (=xl.next)
-    y1:
+    .y1:
         cmp dword [y], 0        ; is y null_ptr?
-        je z1                   ; if yes jump to z
+        je .z1                   ; if yes jump to z
         mov edx, [y]            ; edx <- yl
         mov ebx, 0
         add bl, byte [edx]      ; c <- c + yl.value
         add ecx, ebx            ; c <- c + yl.value
         mov edx, dword [edx+1]  ; edx <- yl.next
         mov [y], edx            ; y <- edx (=yl.next)
-    z1:
+    .z1:
         myMalloc 5              ; allocate new link for Z
         mov [eax], byte cl      ; link value <- 8 lsb of carry
         mov [eax+1], dword 0    ; link pointr <- null
@@ -288,31 +288,31 @@ Ed_Edd_n_Eddy:              ; addition
         shr ecx, 8         ; decrease carry by 8 bits
 
 
-    Addloop:
+    .Addloop:
         mov edx, [x]
         add edx, [y]
         cmp edx, 0      ;x&y ?!= 0
-        je Addend
+        je .Addend
 
-    x2:
+    .x2:
         cmp dword [x], 0    ;is x null_ptr?
-        je y2             ;if yes jump to y
+        je .y2             ;if yes jump to y
         mov edx, [x]        ;edx<- l
         mov ebx, 0
         add bl, byte [edx] ;bl <- l.value
         add ecx, ebx ;c <- c + l.value
         mov edx, dword [edx+1]    ;x <- l.next
         mov [x], edx
-    y2:
+    .y2:
         cmp dword [y], 0    ;is y null_ptr?
-        je z2             ;if yes jump to z
+        je .z2             ;if yes jump to z
         mov edx, [y]        ;edx<- l
         mov ebx, 0
         add bl, byte [edx] ;c <- c + l.value
         add ecx, ebx ;c <- c + l.value
         mov edx, dword [edx+1]  ;y <- l.next
         mov [y], edx
-    z2:
+    .z2:
         myMalloc 5
         mov [eax], byte cl
         mov [eax+1], dword 0 
@@ -321,17 +321,17 @@ Ed_Edd_n_Eddy:              ; addition
     mov [edx+1], eax    ;l.next<- new-link
     mov [z], eax        ;z <- l.next
     shr ecx, 8
-    jmp Addloop
+    jmp .Addloop
 
-    Addend:
+    .Addend:
     cmp ecx, 0
-    je Addendend
+    je .Addendend
     myMalloc 5
     mov [eax], byte cl
     mov [eax+1], dword 0
     mov edx, [z]
     mov [edx+1], dword eax
-    Addendend:
+    .Addendend:
         mov edx, dword [Z]
         mov ecx, dword [stack]
         mov [ecx], dword edx
@@ -387,14 +387,14 @@ poop:
     popad
     myFree eax
     mov eax, [stack]
-    mov [eax], dword 0        ;nullinh [stack]
+    mov [eax], dword 0   ;nullinh [stack]
     decStack
     mov esp, ebp    
     pop ebp
     printString mynew_line
     ret
     
-    underflow:
+underflow:
     printString underflowMsg
     endFunc 0
 
@@ -410,7 +410,7 @@ printNumList:
     call printNumList       ;recursive call
     add esp, 4              ;pop to void
     popad
-    mov ebx, 0 ;importent
+    mov ebx, 0              ;importent
     mov bl , byte [eax]     ;ebx <- l.value
     printHexDigit ebx
     mov eax, dword [eax+1]        ;eax<-l.next
@@ -431,13 +431,11 @@ duplicate:
     mov [x], dword edx      ; pionter to first num link in x
     incStack                ; stack++ size++
     myMalloc 5              ; creat new link
-    .b1:
     mov [z], dword eax      ; z holds new link address
     mov ebx, dword [stack]  ; ebx <- [stack]
     mov [ebx], dword eax    ; [[stack]] <- new link address
 
     ; copy xlink data
-    .b2:
     mov cl, byte [edx]     ; ebx <- xl data 
     mov [eax], byte cl     ; zl data <- xl data
     mov [eax+1], dword 0   ; zl points to null
@@ -472,6 +470,8 @@ duplicate:
 myAnd:
     startFunc 0
 
+
+
     .end:
     endFunc 0
 
@@ -491,6 +491,8 @@ parseCommand:
     je Ed
     cmp eax, 0x64       ;'d'
     je duplicate_fun
+    cmp eax, 0x26       ;'&'
+    je and_meow
     
     Posh:
     call posh
@@ -507,9 +509,9 @@ parseCommand:
     duplicate_fun:
     call duplicate
     jmp end_p
-    ;and_meow:
-    ;call myAnd
-    ;jmp end_p
+    and_meow:
+    call myAnd
+    jmp end_p
     end_p:
     mov esp, ebp
     pop ebp
