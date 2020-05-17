@@ -243,8 +243,7 @@ myexit:
     int 0x80 
 
 Ed_Edd_n_Eddy:              ; addition
-    push ebp                ; save ret address
-    mov ebp, esp
+    startFunc 0
     mov eax, [size]         ; eax <- curr stack size
     cmp eax, 2              ; if eax < 2
     jl underflow            ; return underflow
@@ -256,8 +255,6 @@ Ed_Edd_n_Eddy:              ; addition
     mov [Y], dword eax      ; Y <- pointer to second num
     mov [y], dword eax      ; y <- pointer to second num
     mov ecx, 0              ; ecx <- int carry
-    ; mov [Z], dword 0
-    ; mov [z], dword 0
    
     mov edx, [x]            ; edx <- pointer to link  
     add edx, [y]            ; edx <- pointer to xl + pointer to yl
@@ -292,8 +289,6 @@ Ed_Edd_n_Eddy:              ; addition
 
 
     Addloop:
-    
-
         mov edx, [x]
         add edx, [y]
         cmp edx, 0      ;x&y ?!= 0
@@ -322,10 +317,6 @@ Ed_Edd_n_Eddy:              ; addition
         mov [eax], byte cl
         mov [eax+1], dword 0 
 
-
-
-
-
     mov edx, [z]
     mov [edx+1], eax    ;l.next<- new-link
     mov [z], eax        ;z <- l.next
@@ -344,13 +335,10 @@ Ed_Edd_n_Eddy:              ; addition
         mov edx, dword [Z]
         mov ecx, dword [stack]
         mov [ecx], dword edx
-        mov esp, ebp
-        pop ebp
-        ret
+        endFunc 0
 
 posh:
-    push ebp                ; jump over ret address             
-    mov ebp, esp            
+    startFunc 0           
 
     mov eax, [size]         ; put size in eax
     cmp eax , [capacity]    ; size ?= capacity
@@ -365,7 +353,7 @@ posh:
         parseOneChar edx    ; returned value in eax
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         ; printHexDigit ecx   ; 
-        pushNewLink ecx
+        pushNewLink cl
         add edx, 1 
         b3:
     evenlength:
@@ -374,7 +362,7 @@ posh:
         parseTwochars edx
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         ; printHexDigit ecx
-        pushNewLink ecx
+        pushNewLink cl
         add edx, 2
         jmp evenlength
     end_posh:
@@ -389,12 +377,12 @@ poop:
     push ebp
     mov ebp, esp
     mov eax, [size]
-    cmp eax, 0      ;size ?= 0
+    cmp eax, 0          ;size ?= 0
     je underflow
     getHeadOfNum eax
     pushad
-    push eax            ;push first link
-    call printNumList   ;recursize function
+    push eax            ; push first link
+    call printNumList   ; recursize function
     add esp, 4          ; pop to void
     popad
     myFree eax
@@ -408,13 +396,11 @@ poop:
     
     underflow:
     printString underflowMsg
-    mov esp, ebp
-    pop ebp
-    ret
+    endFunc 0
 
 printNumList:
-    push ebp
-    mov ebp, esp
+    startFunc 0
+
     mov eax, [ebp+8]        ;get link* l (given parameter)
     cmp eax, 0              ;if (l == null_ptr)
     je .end                 ;jmp to end
@@ -430,38 +416,37 @@ printNumList:
     mov eax, dword [eax+1]        ;eax<-l.next
     myFree eax
     .end:
-    mov esp, ebp
-    pop ebp
-    ret
+    endFunc 0
 
 duplicate:
-    push ebp                ; save ret address
-    mov ebp, esp
+    startFunc 0
     
     mov eax, [size]         ; check if size allow duplication
     cmp eax, 0              ; size ?= 0
     je underflow            ; nothing to duplicat
-    cmp eax , [capacity]    ; size ?= capacity
+    cmp eax,  [capacity]    ; size ?= capacity
     je overflow             ; stack if full
 
     getHeadOfNum edx        ; pointer to first num link in edx
     mov [x], dword edx      ; pionter to first num link in x
     incStack                ; stack++ size++
     myMalloc 5              ; creat new link
+    .b1:
     mov [z], dword eax      ; z holds new link address
-    mov ebx, dword [stack]  ; ebx <- [[stack]]
+    mov ebx, dword [stack]  ; ebx <- [stack]
     mov [ebx], dword eax    ; [[stack]] <- new link address
 
     ; copy xlink data
-    mov ecx, byte [edx]     ; ebx <- xl data 
-    mov [eax], byte ecx     ; zl data <- xl data
-    mov [eax+1], dword 0    ; zl points to null
+    .b2:
+    mov cl, byte [edx]     ; ebx <- xl data 
+    mov [eax], byte cl     ; zl data <- xl data
+    mov [eax+1], dword 0   ; zl points to null
 
-    mov ebx, dword [z]      ; in loop ebx holds z !
+    mov ebx, eax          ; in loop ebx holds z !
 
     ; eax = the created new link
     ; ebx = the previeus link
-    ; ecx = data in origin link
+    ; cl = data in origin link
     ; edx = the origin link
     .loop:
     ; x++
@@ -469,45 +454,47 @@ duplicate:
     
     ; end ?
     cmp dword edx, 0        ; edx holds poiner to next link
-    je end                  ; if pointer to null, finish
+    je .end                  ; if pointer to null, finish
 
     ; create new link
     myMalloc 5              ; create new link for z, return in eax
     mov [ebx+1], dword eax  ; ecx holds z, z.next <- eax
     mov ebx, dword eax      ; z <- next link
-    mov ecx, byte [edx]     ; ebx <- xl data 
-    mov [ebx], byte ecx     ; zl data <- xl data
+    mov cl, byte [edx]     ; ebx <- xl data 
+    mov [ebx], byte cl     ; zl data <- xl data
     mov [ebx+1], dword 0    ; zl.next <- 0
 
-    jmp loop
+    jmp .loop
 
     .end:
-    mov esp, ebp
-    pop ebp
-    ret
+    endFunc 0
 
+myAnd:
+    startFunc 0
+
+    .end:
+    endFunc 0
 
 parseCommand:
-    push ebp
-    mov ebp, esp
+    startFunc 0
+    
     mov eax, 0
     mov al, byte [buff] ;eax <- (char)buff[0]
-    cmp eax ,0x70   ;'p'
+    
+    cmp eax ,0x70       ;'p'
     je user_wants_to_poop
-    cmp eax, 0x71   ;'q'
+    cmp eax, 0x71       ;'q'
     je myexit
-    cmp eax, 0x73   ;'s'
+    cmp eax, 0x73       ;'s'
     je debugAc
-    cmp eax, 43   ;'+'
+    cmp eax, 43         ;'+'
     je Ed
-    cmp eax, 0x64   ;'d'
-    je duplicate
+    cmp eax, 0x64       ;'d'
+    je duplicate_fun
     
     Posh:
     call posh
     jmp end_p
-    
-    
     Ed:
     call Ed_Edd_n_Eddy
     jmp end_p
@@ -517,9 +504,15 @@ parseCommand:
     user_wants_to_poop:
     call poop
     jmp end_p
+    duplicate_fun:
+    call duplicate
+    jmp end_p
+    ;and_meow:
+    ;call myAnd
+    ;jmp end_p
     end_p:
     mov esp, ebp
-    pop ebx
+    pop ebp
     ret
 
 
