@@ -500,6 +500,8 @@ parseCommand:
     je debugAc
     cmp eax, 43   ;'+'
     je Ed
+    cmp eax, 0x64   ;'d'
+    je duplicate
     
     Posh:
     call posh
