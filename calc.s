@@ -434,6 +434,55 @@ printNumList:
     pop ebp
     ret
 
+duplicate:
+    push ebp                ; save ret address
+    mov ebp, esp
+    
+    mov eax, [size]         ; check if size allow duplication
+    cmp eax, 0              ; size ?= 0
+    je underflow            ; nothing to duplicat
+    cmp eax , [capacity]    ; size ?= capacity
+    je overflow             ; stack if full
+
+    getHeadOfNum edx        ; pointer to first num link in edx
+    mov [x], dword edx      ; pionter to first num link in x
+    incStack                ; stack++ size++
+    myMalloc 5              ; creat new link
+    mov [z], dword eax      ; z holds new link address
+    mov ebx, dword [stack]  ; ebx <- [[stack]]
+    mov [ebx], dword eax    ; [[stack]] <- new link address
+
+    ; copy xlink data
+    mov ebx, byte [edx]     ; ebx <- xl data 
+    mov ecx, 0              ; init ecx
+    mov ecx, [z]            ; ecx <- [z] (new link)
+    mov [ecx], byte ebx     ; zl data <- xl data
+    mov [ecx+1], dword 0    ; zl points to null
+
+    .loop:
+    ; x++
+    mov edx, [x]            ; edx <- [x] (curr link to duplicate)
+    mov edx, dword [edx+1]  ; edx <- pointer to next link
+    
+    ; end of link list?
+    cmp edx, 0          ; edx holds poiner to next link
+    je end              ; if pointer to null, finish
+
+    ; create new link
+    myMalloc 5              ; create new link for z, return in eax
+    mov [ecx+1], dword eax  ; ecx holds z, z.next <- eax
+    mov [z], dword eax      ; z <- next link
+    mov ecx, dword [z]            ; ecx <- new link
+    mov ebx, byte [edx]     ; ebx <- xl data 
+    mov [ecx], byte ebx     ; zl data <- xl data
+
+
+    .end:
+    mov esp, ebp
+    pop ebp
+    ret
+
+
 parseCommand:
     push ebp
     mov ebp, esp
