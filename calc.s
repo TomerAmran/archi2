@@ -469,7 +469,7 @@ duplicate:
     
     ; end ?
     cmp dword edx, 0        ; edx holds poiner to next link
-    je end                  ; if pointer to null, finish
+    je .end                  ; if pointer to null, finish
 
     ; create new link
     myMalloc 5              ; create new link for z, return in eax
@@ -479,7 +479,7 @@ duplicate:
     mov [ebx], byte ecx     ; zl data <- xl data
     mov [ebx+1], dword 0    ; zl.next <- 0
 
-    jmp loop
+    jmp .loop
 
     .end:
     mov esp, ebp
