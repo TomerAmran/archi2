@@ -94,6 +94,7 @@ section .bss            ; uninitilaized vars
     pop ebx
 %endmacro
 %macro myFree 1
+    ; arg has to be eax
     push ebx
     push ecx
     push edx              
@@ -138,8 +139,10 @@ section .bss            ; uninitilaized vars
     mov dword [eax], dword 0    ; init as null pointer
 %endmacro
 %macro decStack 0
+    mov eax, [stack]
+    mov [eax], dword 0          ; null in [[stack]]
     sub dword [size], 1
-    sub byte [stack], 4         ;move top pointer
+    sub byte [stack], 4         ; move top pointer
 %endmacro
 %macro getHeadOfNum 1
         ;;%1 can be only a register
@@ -158,37 +161,79 @@ section .bss            ; uninitilaized vars
     pop ebp
     ret
 %endmacro
-%macro loopContent 0
-    mov edx, [x]
-    add edx, [y]
-    cmp edx, 0      ;x&y ?!= 0
-    je .end
-        %%x:
-        cmp dword [x], 0    ;is x null_ptr?
-        je %%y             ;if yes jump to y
-        mov edx, [x]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;bl <- l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]    ;x <- l.next
-        mov [x], edx
-        %%y:
-        cmp dword [y], 0    ;is y null_ptr?
-        je %%z             ;if yes jump to z
-        mov edx, [y]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]  ;y <- l.next
-        mov [y], edx
-        %%z:
-        myMalloc 5
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        mov [eax], byte cl
-        mov [eax+1], dword 0 
+%macro checkUnderflow 1
+    mov eax, [size]         ; check if size allow duplication
+    cmp eax, %1              ; size ?= 0
+    jl underflow            ; nothing to duplicat
+%endmacro
+%macro checkOverflow 0
+    cmp eax,  [capacity]    ; size ?= capacity
+    je overflow             ; stack if full
+%endmacro
+; %macro loopContent 0
+;     mov edx, [x]
+;     add edx, [y]
+;     cmp edx, 0      ;x&y ?!= 0
+;     je .end
+;         %%x:
+;         cmp dword [x], 0    ;is x null_ptr?
+;         je %%y             ;if yes jump to y
+;         mov edx, [x]        ;edx<- l
+;         mov ebx, 0
+;         add bl, byte [edx] ;bl <- l.value
+;         add ecx, ebx ;c <- c + l.value
+;         mov edx, dword [edx+1]    ;x <- l.next
+;         mov [x], edx
+;         %%y:
+;         cmp dword [y], 0    ;is y null_ptr?
+;         je %%z             ;if yes jump to z
+;         mov edx, [y]        ;edx<- l
+;         mov ebx, 0
+;         add bl, byte [edx] ;c <- c + l.value
+;         add ecx, ebx ;c <- c + l.value
+;         mov edx, dword [edx+1]  ;y <- l.next
+;         mov [y], edx
+;         %%z:
+;         myMalloc 5
+;         mov ebx, 0
+;         add bl, byte [edx] ;c <- c + l.value
+;         mov [eax], byte cl
+;         mov [eax+1], dword 0 
+; %endmacro
+%macro startAddLoop 0
+    mov edx, [x]            ; edx <- pointer to link  
+    add edx, [y]            ; edx <- pointer to xl + pointer to yl
+    cmp edx, 0              ; x & y ? != 0
+    je .Addend              ; end of addition (both null_ptr)
+%endmacro
+%macro xTreatment 0
+    cmp dword [x], 0        ; is x null_ptr?
+    je .y2                   ; if yes jump to check y
+    mov edx, [x]            ; edx <- pointer to xl
+    mov ebx, 0              ; preper ebx
+    add bl, byte [edx]      ; bl <- xl.value
+    add ecx, ebx            ; c <- c + xl.value
+    mov edx, dword [edx+1]  ; edx <- xl.next
+    mov [x], edx            ; x <- edx (=xl.next)
+%endmacro
+%macro yTreatment 0
+    cmp dword [y], 0        ; is y null_ptr?
+    je .z2                   ; if yes jump to z
+    mov edx, [y]            ; edx <- yl
+    mov ebx, 0
+    add bl, byte [edx]      ; c <- c + yl.value
+    add ecx, ebx            ; c <- c + yl.value
+    mov edx, dword [edx+1]  ; edx <- yl.next
+    mov [y], edx            ; y <- edx (=yl.next)
+%endmacro
+%macro creatNewLinkForZ 0
+    myMalloc 5              ; allocate new link for Z
+    mov [eax], byte cl      ; link value <- 8 lsb of carry
+    mov [eax+1], dword 0    ; link pointr <- null
+    shr ecx, 8              ; decrease carry by 8 bits
 
 %endmacro
+
 section .text
   align 16
   global main
@@ -244,9 +289,8 @@ myexit:
 
 Ed_Edd_n_Eddy:              ; addition
     startFunc 0
-    mov eax, [size]         ; eax <- curr stack size
-    cmp eax, 2              ; if eax < 2
-    jl underflow            ; return underflow
+
+    checkUnderflow 2        ; end if size < 2
     getHeadOfNum eax        ; eax <- pointer to first number in stack
     mov [X], dword eax      ; X <- pointer to first num
     mov [x], dword eax      ; x <- pointer to first num
@@ -256,10 +300,7 @@ Ed_Edd_n_Eddy:              ; addition
     mov [y], dword eax      ; y <- pointer to second num
     mov ecx, 0              ; ecx <- int carry
    
-    mov edx, [x]            ; edx <- pointer to link  
-    add edx, [y]            ; edx <- pointer to xl + pointer to yl
-    cmp edx, 0              ; x & y ? != 0
-    je .Addend               ; end of addition (both null_ptr)
+    startAddLoop            ; end if both null_ptr
     .x1:
         cmp dword [x], 0        ; is x null_ptr?
         je .y1                   ; if yes jump to check y
@@ -279,70 +320,45 @@ Ed_Edd_n_Eddy:              ; addition
         mov edx, dword [edx+1]  ; edx <- yl.next
         mov [y], edx            ; y <- edx (=yl.next)
     .z1:
-        myMalloc 5              ; allocate new link for Z
-        mov [eax], byte cl      ; link value <- 8 lsb of carry
-        mov [eax+1], dword 0    ; link pointr <- null
-
-        mov [Z], eax       ; update Z <- first link address
-        mov [z], eax       ; z <- first link address
-        shr ecx, 8         ; decrease carry by 8 bits
-
-
+        creatNewLinkForZ
+        mov [Z], dword eax       ; update Z <- first link address
+        mov [z], dword eax       ; z <- first link address
+    
     .Addloop:
-        mov edx, [x]
-        add edx, [y]
-        cmp edx, 0      ;x&y ?!= 0
-        je .Addend
-
-    .x2:
-        cmp dword [x], 0    ;is x null_ptr?
-        je .y2             ;if yes jump to y
-        mov edx, [x]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;bl <- l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]    ;x <- l.next
-        mov [x], edx
-    .y2:
-        cmp dword [y], 0    ;is y null_ptr?
-        je .z2             ;if yes jump to z
-        mov edx, [y]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]  ;y <- l.next
-        mov [y], edx
-    .z2:
-        myMalloc 5
-        mov [eax], byte cl
-        mov [eax+1], dword 0 
-
-    mov edx, [z]
-    mov [edx+1], eax    ;l.next<- new-link
-    mov [z], eax        ;z <- l.next
-    shr ecx, 8
+        startAddLoop
+        .x2:
+            xTreatment      ; treat x macro
+        .y2:
+            yTreatment      ; treat y macro
+        .z2:
+            creatNewLinkForZ
+            mov edx, dword [z]         ; current link
+            mov [edx+1], dword eax    ;l.next <- new-link
+            mov [z], dword eax        ; z <- first link address
     jmp .Addloop
 
     .Addend:
-    cmp ecx, 0
-    je .Addendend
-    myMalloc 5
-    mov [eax], byte cl
-    mov [eax+1], dword 0
-    mov edx, [z]
-    mov [edx+1], dword eax
+        cmp ecx, 0
+        je .Addendend
+        myMalloc 5
+        mov [eax], byte cl
+        mov [eax+1], dword 0
+        mov edx, [z]
+        mov [edx+1], dword eax
     .Addendend:
         mov edx, dword [Z]
         mov ecx, dword [stack]
         mov [ecx], dword edx
+        mov eax, [X]
+        myFree eax
+        mov eax, [Y]
+        myFree eax
         endFunc 0
 
 posh:
     startFunc 0           
 
-    mov eax, [size]         ; put size in eax
-    cmp eax , [capacity]    ; size ?= capacity
-    je overflow             ; if stack if full
+    checkOverflow           ; end if stack is full
     incStack                ; else, size++
     mov edx, buff           ; we gonna mess with this pointer
     b2:
@@ -369,16 +385,15 @@ posh:
         mov esp, ebp
         pop ebp
         ret
-    overflow:
+overflow:
         printString overflowMsg
         jmp main_loop
 
 poop:
     push ebp
     mov ebp, esp
-    mov eax, [size]
-    cmp eax, 0          ;size ?= 0
-    je underflow
+    
+    checkUnderflow 1    ; end if there is less than 1 num
     getHeadOfNum eax
     pushad
     push eax            ; push first link
@@ -386,8 +401,8 @@ poop:
     add esp, 4          ; pop to void
     popad
     myFree eax
-    mov eax, [stack]
-    mov [eax], dword 0   ;nullinh [stack]
+    ; mov eax, [stack]
+    ; mov [eax], dword 0   ;nullinh [stack]
     decStack
     mov esp, ebp    
     pop ebp
@@ -421,11 +436,8 @@ printNumList:
 duplicate:
     startFunc 0
     
-    mov eax, [size]         ; check if size allow duplication
-    cmp eax, 0              ; size ?= 0
-    je underflow            ; nothing to duplicat
-    cmp eax,  [capacity]    ; size ?= capacity
-    je overflow             ; stack if full
+    checkUnderflow 1        ; ened if there is less than 1 num
+    checkOverflow
 
     getHeadOfNum edx        ; pointer to first num link in edx
     mov [x], dword edx      ; pionter to first num link in x
@@ -469,8 +481,6 @@ duplicate:
 
 myAnd:
     startFunc 0
-
-
 
     .end:
     endFunc 0
