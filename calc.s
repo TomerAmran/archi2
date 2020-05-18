@@ -94,6 +94,7 @@ section .bss            ; uninitilaized vars
     pop ebx
 %endmacro
 %macro myFree 1
+    ; arg has to be eax
     push ebx
     push ecx
     push edx              
@@ -138,8 +139,10 @@ section .bss            ; uninitilaized vars
     mov dword [eax], dword 0    ; init as null pointer
 %endmacro
 %macro decStack 0
+    mov eax, [stack]
+    mov [eax], dword 0          ; null in [[stack]]
     sub dword [size], 1
-    sub byte [stack], 4         ;move top pointer
+    sub byte [stack], 4         ; move top pointer
 %endmacro
 %macro getHeadOfNum 1
         ;;%1 can be only a register
@@ -158,37 +161,53 @@ section .bss            ; uninitilaized vars
     pop ebp
     ret
 %endmacro
-%macro loopContent 0
-    mov edx, [x]
-    add edx, [y]
-    cmp edx, 0      ;x&y ?!= 0
-    je .end
-        %%x:
-        cmp dword [x], 0    ;is x null_ptr?
-        je %%y             ;if yes jump to y
-        mov edx, [x]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;bl <- l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]    ;x <- l.next
-        mov [x], edx
-        %%y:
-        cmp dword [y], 0    ;is y null_ptr?
-        je %%z             ;if yes jump to z
-        mov edx, [y]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]  ;y <- l.next
-        mov [y], edx
-        %%z:
-        myMalloc 5
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        mov [eax], byte cl
-        mov [eax+1], dword 0 
-
+%macro checkUnderflow 1
+    mov eax, [size]         ; check if size allow duplication
+    cmp eax, %1              ; size ?= 0
+    jl underflow            ; nothing to duplicat
 %endmacro
+%macro checkOverflow 0
+    cmp eax,  [capacity]    ; size ?= capacity
+    je overflow             ; stack if full
+%endmacro
+%macro startLoop 0
+    mov edx, [x]            ; edx <- pointer to link  
+    add edx, [y]            ; edx <- pointer to xl + pointer to yl
+    cmp edx, 0              ; x & y ? != 0
+    je .beforeEnd              ; end of addition (both null_ptr)
+%endmacro
+%macro xTreatment 0
+    mov edx, [x]            ; edx <- pointer to xl
+    mov ebx, 0              ; preper ebx
+    add bl, byte [edx]      ; bl <- xl.value
+    add ecx, ebx            ; c <- c + xl.value
+    mov edx, dword [edx+1]  ; edx <- xl.next
+    mov [x], edx            ; x <- edx (=xl.next)
+%endmacro
+%macro yTreatment 0
+    mov edx, [y]            ; edx <- yl
+    mov ebx, 0
+    add bl, byte [edx]      ; c <- c + yl.value
+    add ecx, ebx            ; c <- c + yl.value
+    mov edx, dword [edx+1]  ; edx <- yl.next
+    mov [y], edx            ; y <- edx (=yl.next)
+%endmacro
+%macro creatNewLinkForZ 0
+    myMalloc 5              ; allocate new link for Z
+    mov [eax], byte cl      ; link value <- 8 lsb of carry
+    mov [eax+1], dword 0    ; link pointr <- null
+    shr ecx, 8              ; decrease carry by 8 bits
+%endmacro
+%macro first_2_nums_in_Xx_Yy 0
+    getHeadOfNum eax        ; eax <- pointer to first number in stack
+    mov [X], dword eax      ; X <- pointer to first num
+    mov [x], dword eax      ; x <- pointer to first num
+    decStack                ; move 'stack' pointer to second num, decreas size
+    getHeadOfNum eax        ; eax <- pointer to first (=second) number in stack
+    mov [Y], dword eax      ; Y <- pointer to second num
+    mov [y], dword eax      ; y <- pointer to second num
+%endmacro
+
 section .text
   align 16
   global main
@@ -243,118 +262,64 @@ myexit:
     int 0x80 
 
 Ed_Edd_n_Eddy:              ; addition
-    push ebp                ; save ret address
-    mov ebp, esp
-    mov eax, [size]         ; eax <- curr stack size
-    cmp eax, 2              ; if eax < 2
-    jl underflow            ; return underflow
-    getHeadOfNum eax        ; eax <- pointer to first number in stack
-    mov [X], dword eax      ; X <- pointer to first num
-    mov [x], dword eax      ; x <- pointer to first num
-    decStack                ; move 'stack' pointer to second num, decreas size
-    getHeadOfNum eax        ; eax <- pointer to first (=second) number in stack
-    mov [Y], dword eax      ; Y <- pointer to second num
-    mov [y], dword eax      ; y <- pointer to second num
+    startFunc 0
+
+    checkUnderflow 2        ; end if size < 2
+    first_2_nums_in_Xx_Yy
     mov ecx, 0              ; ecx <- int carry
-    ; mov [Z], dword 0
-    ; mov [z], dword 0
    
-    mov edx, [x]            ; edx <- pointer to link  
-    add edx, [y]            ; edx <- pointer to xl + pointer to yl
-    cmp edx, 0              ; x & y ? != 0
-    je Addend               ; end of addition (both null_ptr)
-    x1:
+    startLoop               ; end if both null_ptr
+    .x1:
         cmp dword [x], 0        ; is x null_ptr?
-        je y1                   ; if yes jump to check y
-        mov edx, [x]            ; edx <- pointer to xl
-        mov ebx, 0              ; preper ebx
-        add bl, byte [edx]      ; bl <- xl.value
-        add ecx, ebx            ; c <- c + xl.value
-        mov edx, dword [edx+1]  ; edx <- xl.next
-        mov [x], edx            ; x <- edx (=xl.next)
-    y1:
+        je .y1                  ; if yes jump to check y
+        xTreatment
+    .y1:
         cmp dword [y], 0        ; is y null_ptr?
-        je z1                   ; if yes jump to z
-        mov edx, [y]            ; edx <- yl
-        mov ebx, 0
-        add bl, byte [edx]      ; c <- c + yl.value
-        add ecx, ebx            ; c <- c + yl.value
-        mov edx, dword [edx+1]  ; edx <- yl.next
-        mov [y], edx            ; y <- edx (=yl.next)
-    z1:
-        myMalloc 5              ; allocate new link for Z
-        mov [eax], byte cl      ; link value <- 8 lsb of carry
-        mov [eax+1], dword 0    ; link pointr <- null
-
-        mov [Z], eax       ; update Z <- first link address
-        mov [z], eax       ; z <- first link address
-        shr ecx, 8         ; decrease carry by 8 bits
-
-
-    Addloop:
+        je .z1                  ; if yes jump to z
+        yTreatment
+    .z1:
+        creatNewLinkForZ
+        mov [Z], dword eax      ; update Z <- first link address
+        mov [z], dword eax      ; z <- first link address
     
+    .loop:
+        startLoop
+        .x2:
+            cmp dword [x], 0         ; is x null_ptr?
+            je .y2                   ; if yes jump to check y
+            xTreatment               ; treat x macro
+        .y2:
+            cmp dword [y], 0         ; is y null_ptr?
+            je .z2                   ; if yes jump to z
+            yTreatment               ; treat y macro
+        .z2:
+            creatNewLinkForZ
+            mov edx, dword [z]        ; edx <- current link
+            mov [edx+1], dword eax    ; l.next <- new-link
+            mov [z], dword eax        ; z <- first link address
+    jmp .loop
 
-        mov edx, [x]
-        add edx, [y]
-        cmp edx, 0      ;x&y ?!= 0
-        je Addend
-
-    x2:
-        cmp dword [x], 0    ;is x null_ptr?
-        je y2             ;if yes jump to y
-        mov edx, [x]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;bl <- l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]    ;x <- l.next
-        mov [x], edx
-    y2:
-        cmp dword [y], 0    ;is y null_ptr?
-        je z2             ;if yes jump to z
-        mov edx, [y]        ;edx<- l
-        mov ebx, 0
-        add bl, byte [edx] ;c <- c + l.value
-        add ecx, ebx ;c <- c + l.value
-        mov edx, dword [edx+1]  ;y <- l.next
-        mov [y], edx
-    z2:
-        myMalloc 5
-        mov [eax], byte cl
-        mov [eax+1], dword 0 
-
-
-
-
-
-    mov edx, [z]
-    mov [edx+1], eax    ;l.next<- new-link
-    mov [z], eax        ;z <- l.next
-    shr ecx, 8
-    jmp Addloop
-
-    Addend:
-    cmp ecx, 0
-    je Addendend
-    myMalloc 5
-    mov [eax], byte cl
-    mov [eax+1], dword 0
-    mov edx, [z]
-    mov [edx+1], dword eax
-    Addendend:
-        mov edx, dword [Z]
-        mov ecx, dword [stack]
-        mov [ecx], dword edx
-        mov esp, ebp
-        pop ebp
-        ret
+    .beforeEnd:
+        cmp ecx, 0              ; if carry 0
+        je .end                 ; no need another link
+        creatNewLinkForZ        ; else, create 1 more link
+        mov edx, dword [z]      ; edx <- curr link            
+        mov [edx+1], dword eax  ; l.next <- new link
+    .end:
+        mov edx, dword [Z]          ; edx <- first link of new number
+        mov ecx, dword [stack]      ; ecx <- location  of new number
+        mov [ecx], dword edx        ; [[stack]] <- first link of new num
+        mov eax, [X]                ; free X
+        myFree eax
+        mov eax, [Y]                ; free Y
+        myFree eax
+        
+    endFunc 0
 
 posh:
-    push ebp                ; jump over ret address             
-    mov ebp, esp            
+    startFunc 0           
 
-    mov eax, [size]         ; put size in eax
-    cmp eax , [capacity]    ; size ?= capacity
-    je overflow             ; if stack if full
+    checkOverflow           ; end if stack is full
     incStack                ; else, size++
     mov edx, buff           ; we gonna mess with this pointer
     b2:
@@ -365,7 +330,7 @@ posh:
         parseOneChar edx    ; returned value in eax
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         ; printHexDigit ecx   ; 
-        pushNewLink ecx
+        pushNewLink cl
         add edx, 1 
         b3:
     evenlength:
@@ -374,47 +339,44 @@ posh:
         parseTwochars edx
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         ; printHexDigit ecx
-        pushNewLink ecx
+        pushNewLink cl
         add edx, 2
         jmp evenlength
     end_posh:
         mov esp, ebp
         pop ebp
         ret
-    overflow:
+overflow:
         printString overflowMsg
         jmp main_loop
 
 poop:
     push ebp
     mov ebp, esp
-    mov eax, [size]
-    cmp eax, 0      ;size ?= 0
-    je underflow
+    
+    checkUnderflow 1    ; end if there is less than 1 num
     getHeadOfNum eax
     pushad
-    push eax            ;push first link
-    call printNumList   ;recursize function
+    push eax            ; push first link
+    call printNumList   ; recursize function
     add esp, 4          ; pop to void
     popad
     myFree eax
-    mov eax, [stack]
-    mov [eax], dword 0        ;nullinh [stack]
+    ; mov eax, [stack]
+    ; mov [eax], dword 0   ;nullinh [stack]
     decStack
     mov esp, ebp    
     pop ebp
     printString mynew_line
     ret
     
-    underflow:
+underflow:
     printString underflowMsg
-    mov esp, ebp
-    pop ebp
-    ret
+    endFunc 0
 
 printNumList:
-    push ebp
-    mov ebp, esp
+    startFunc 0
+
     mov eax, [ebp+8]        ;get link* l (given parameter)
     cmp eax, 0              ;if (l == null_ptr)
     je .end                 ;jmp to end
@@ -424,35 +386,135 @@ printNumList:
     call printNumList       ;recursive call
     add esp, 4              ;pop to void
     popad
-    mov ebx, 0 ;importent
+    mov ebx, 0              ;importent
     mov bl , byte [eax]     ;ebx <- l.value
     printHexDigit ebx
     mov eax, dword [eax+1]        ;eax<-l.next
     myFree eax
     .end:
-    mov esp, ebp
-    pop ebp
-    ret
+    endFunc 0
 
+duplicate:
+    startFunc 0
+    
+    checkUnderflow 1        ; ened if there is less than 1 num
+    checkOverflow
+
+    getHeadOfNum edx        ; pointer to first num link in edx
+    mov [x], dword edx      ; pionter to first num link in x
+    incStack                ; stack++ size++
+    myMalloc 5              ; creat new link
+    mov [z], dword eax      ; z holds new link address
+    mov ebx, dword [stack]  ; ebx <- [stack]
+    mov [ebx], dword eax    ; [[stack]] <- new link address
+
+    ; copy xlink data
+    mov cl, byte [edx]     ; ebx <- xl data 
+    mov [eax], byte cl     ; zl data <- xl data
+    mov [eax+1], dword 0   ; zl points to null
+
+    mov ebx, eax          ; in loop ebx holds z !
+
+    ; eax = the created new link
+    ; ebx = the previeus link
+    ; cl = data in origin link
+    ; edx = the origin link
+    .loop:
+    ; x++
+    mov edx, dword [edx+1]  ; edx([x]) <- pointer to next link
+    
+    ; end ?
+    cmp dword edx, 0        ; edx holds poiner to next link
+    je .end                  ; if pointer to null, finish
+
+    ; create new link
+    myMalloc 5              ; create new link for z, return in eax
+    mov [ebx+1], dword eax  ; ecx holds z, z.next <- eax
+    mov ebx, dword eax      ; z <- next link
+    mov cl, byte [edx]     ; ebx <- xl data 
+    mov [ebx], byte cl     ; zl data <- xl data
+    mov [ebx+1], dword 0    ; zl.next <- 0
+
+    jmp .loop
+
+    .end:
+    endFunc 0
+
+myAnd:
+    startFunc 0
+
+    checkUnderflow 2
+    first_2_nums_in_Xx_Yy
+
+    ; eax = xl
+    ; ebx = yl
+    ; cl = and(bl&al) result 
+    .loop:
+        cmp eax, 0          ; end if x is null
+        je .end
+        cmp ebx, 0          ; end if y is null
+        je .end
+
+        mov eax, [x]                 
+        mov al, byte [eax]     ; eax <- x data
+        mov ebx, [y]
+        mov cl, byte [ebx]     ; ecx <- y data
+        and cl, al              ; cl <- cl & al
+        mov [ebx], cl           ; update y data to be cl
+
+        mov ebx, [y]
+        mov ebx, dword [ebx+1]      ; y++
+        mov [y], dword ebx
+        mov eax, [x]                
+        mov eax, dword [eax+1]      ; x++
+        mov [x], dword eax
+
+        jmp .loop
+
+    .end:
+        mov eax, [X]        ; free whole X
+        myFree eax
+        mov eax, ebx        ; free rest of y if needed
+        myFree eax
+    endFunc 0
+
+myOr:
+    startFunc 0
+
+    checkUnderflow 2
+    first_2_nums_in_Xx_Yy
+    
+    .loop:
+        startLoop               ; end if both null
+        
+
+
+    .beforeEnd:
+
+    .end:
+    endFunc 0
 parseCommand:
-    push ebp
-    mov ebp, esp
+    startFunc 0
+    
     mov eax, 0
     mov al, byte [buff] ;eax <- (char)buff[0]
-    cmp eax ,0x70   ;'p'
+    
+    cmp eax ,0x70       ;'p'
     je user_wants_to_poop
-    cmp eax, 0x71   ;'q'
+    cmp eax, 0x71       ;'q'
     je myexit
-    cmp eax, 0x73   ;'s'
+    cmp eax, 0x73       ;'s'
     je debugAc
-    cmp eax, 43   ;'+'
+    cmp eax, 43         ;'+'
     je Ed
+    cmp eax, 0x64       ;'d'
+    je duplicate_fun
+    cmp eax, 0x26       ;'&'
+    je and_meow
     
     Posh:
     call posh
     jmp end_p
-    
-    
     Ed:
     call Ed_Edd_n_Eddy
     jmp end_p
@@ -462,9 +524,15 @@ parseCommand:
     user_wants_to_poop:
     call poop
     jmp end_p
+    duplicate_fun:
+    call duplicate
+    jmp end_p
+    and_meow:
+    call myAnd
+    jmp end_p
     end_p:
     mov esp, ebp
-    pop ebx
+    pop ebp
     ret
 
 
