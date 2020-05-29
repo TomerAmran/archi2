@@ -490,12 +490,17 @@ myOr:
     .loop:
         startLoop               ; end if both null
         cmp eax, 0              ; if x reached to null
+        je .freeX
+        cmp ebx, 0              ; if y reached to null
+        je .movXtoY              ; mov x tail to y and free x
 
 
-
+    .movXtoY:
+        mov edx, [eax]
     .freeX:
         mov eax, [X]        ; free whole X
         myFree eax
+    .beforeEnd:
     .end:
     endFunc 0
 parseCommand:
