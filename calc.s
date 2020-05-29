@@ -207,6 +207,14 @@ section .bss            ; uninitilaized vars
     mov [Y], dword ebx      ; Y <- pointer to second num
     mov [y], dword ebx      ; y <- pointer to second num
 %endmacro
+%macro x_y_forward 0
+    mov ebx, [y]
+    mov ebx, dword [ebx+1]      ; y++
+    mov [y], dword ebx
+    mov eax, [x]                
+    mov eax, dword [eax+1]      ; x++
+    mov [x], dword eax
+%endmacro
 
 section .text
   align 16
@@ -459,15 +467,10 @@ myAnd:
         mov al, byte [eax]     ; eax <- x data
         mov ebx, [y]
         mov cl, byte [ebx]     ; ecx <- y data
-        and cl, al              ; cl <- cl & al
-        mov [ebx], cl           ; update y data to be cl
+        and cl, al             ; cl <- cl & al
+        mov [ebx], cl          ; update y data to be cl
 
-        mov ebx, [y]
-        mov ebx, dword [ebx+1]      ; y++
-        mov [y], dword ebx
-        mov eax, [x]                
-        mov eax, dword [eax+1]      ; x++
-        mov [x], dword eax
+        x_y_forward
 
         jmp .loop
 
@@ -492,11 +495,24 @@ myOr:
         cmp eax, 0              ; if x reached to null
         je .freeX
         cmp ebx, 0              ; if y reached to null
-        je .movXtoY              ; mov x tail to y and free x
+        je .movXtoY             ; mov x tail to y and free x
 
+        mov eax, [x]                 
+        mov al, byte [eax]     ; eax <- x data
+        mov ebx, [y]
+        mov cl, byte [ebx]     ; ecx <- y data
+        or cl, al              ; cl <- cl & al
+        mov [ebx], cl          ; update y data to be cl
+
+        x_y_forward
+
+        jmp .loop
 
     .movXtoY:
-        mov edx, [eax]
+        mov eax, [x]                 
+        mov eax, dword [eax+1]          ; eax <- x.next
+        mov ebx, [y]
+        mov dword [ebx+1], dword eax    ; y.next <- x.next
     .freeX:
         mov eax, [X]        ; free whole X
         myFree eax
