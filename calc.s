@@ -231,6 +231,25 @@ section .bss            ; uninitilaized vars
     add esp, 4 
     popad
 %endmacro
+%macro cleanLeadingZerosAndPutHeadInEDX 0
+    mov edx, buff
+    %%cleanLoop:
+        cmp byte [edx], 0x30 ; [edx] ?= '0'
+        je %%isZero
+        cmp byte [edx], 0 
+        je %%isNull
+        ;is a digit
+        jmp %%endclean
+        %%isZero:
+            inc edx
+            jmp %%cleanLoop
+        %%isNull:
+            dec edx
+            jmp %%endclean
+    %%endclean:
+%endmacro
+
+
 
 section .text
   align 16
@@ -365,8 +384,9 @@ posh:
 
     checkOverflow           ; end if stack is full
     incStack                ; else, size++
-    mov edx, buff           ; we gonna mess with this pointer
-    checkLengthPairty buff  ; returned value in eax
+    ; mov edx, buff           ; we gonna mess with this pointer
+    cleanLeadingZerosAndPutHeadInEDX
+    checkLengthPairty edx  ; returned value in eax
     cmp eax,0               ; if buff size is even
     je .evenlength
     .oddlength:
