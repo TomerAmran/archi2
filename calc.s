@@ -9,6 +9,7 @@ section	.rodata ;constats
 section .data           ; inisiliazed vars
     size: dd 0
     capacity: dd 5    
+    opCounter: dd 0
 section .bss            ; uninitilaized vars
     stack: resd 1       ; dynamic stack pointer
     stackBase: resd 1   ; pointer to head of stack
@@ -161,14 +162,22 @@ section .bss            ; uninitilaized vars
     pop ebp
     ret
 %endmacro
-%macro checkUnderflow 1
+%macro checkUnderflow 1 
+    ;%1 is number of rands needed
     mov eax, [size]         ; check if size allow duplication
     cmp eax, %1              ; size ?= 0
-    jl underflow            ; nothing to duplicat
+    jge %%notUnderFlow
+    printString underflowMsg
+    endFunc 0
+    %%notUnderFlow:
 %endmacro
 %macro checkOverflow 0
+    mov eax, [size]
     cmp eax,  [capacity]    ; size ?= capacity
-    je overflow             ; stack if full
+    jl %%notOverFlow
+    printString overflowMsg
+    endFunc 0
+    %%notOverFlow:
 %endmacro
 %macro startLoop 0
     mov edx, [x]            ; edx <- pointer to link  
@@ -257,12 +266,22 @@ main:
         mov [stack], eax       ; pointer to end of stack
         sub dword[stack], 4
         mov [stackBase], eax
-    
-    ; #####  MAIN LOOP  #####
-    main_loop:
-        myGets buff 
-        call parseCommand
-        jmp main_loop
+
+    call myCalc
+    printHexDigit eax
+    call myexit
+
+
+myCalc:
+    startFunc 0
+    .main_loop:
+            myGets buff 
+            call parseCommand
+            cmp eax, 0x71
+            jne .main_loop
+    .endMyCalc:
+        mov eax, [opCounter]
+        endFunc 0   
 myexit:
     myFree [stackBase]          ; free operand stack
     mov eax,  SIGEXIT           ; call exit sys_call
@@ -330,33 +349,28 @@ posh:
     checkOverflow           ; end if stack is full
     incStack                ; else, size++
     mov edx, buff           ; we gonna mess with this pointer
-    b2:
     checkLengthPairty buff  ; returned value in eax
     cmp eax,0               ; if buff size is even
-    je evenlength
-    oddlength:
+    je .evenlength
+    .oddlength:
         parseOneChar edx    ; returned value in eax
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         ; printHexDigit ecx   ; 
         pushNewLink cl
         add edx, 1 
-        b3:
-    evenlength:
+    .evenlength:
         cmp byte [edx], 0
-        je  end_posh
+        je  .end
         parseTwochars edx
         mov ecx, eax        ; ecx <- data (becuase next macro mess with eax)
         ; printHexDigit ecx
         pushNewLink cl
         add edx, 2
-        jmp evenlength
-    end_posh:
+        jmp .evenlength
+    .end:
         mov esp, ebp
         pop ebp
         ret
-overflow:
-        printString overflowMsg
-        jmp main_loop
 
 poop:
     push ebp
@@ -373,14 +387,12 @@ poop:
     ; mov eax, [stack]
     ; mov [eax], dword 0   ;nullinh [stack]
     decStack
+    .end:
     mov esp, ebp    
     pop ebp
     printString mynew_line
     ret
     
-underflow:
-    printString underflowMsg
-    endFunc 0
 
 printNumList:
     startFunc 0
@@ -521,14 +533,15 @@ myOr:
     endFunc 0
 parseCommand:
     startFunc 0
-    
+    inc dword [opCounter]
     mov eax, 0
     mov al, byte [buff] ;eax <- (char)buff[0]
     
     cmp eax ,0x70       ;'p'
     je user_wants_to_poop
     cmp eax, 0x71       ;'q'
-    je myexit
+    dec dword [opCounter]
+    je end_p
     cmp eax, 0x73       ;'s'
     je debugAc
     cmp eax, 43         ;'+'
@@ -541,27 +554,42 @@ parseCommand:
     je or_meow
     
     Posh:
+    pushad
     call posh
+    popad
     jmp end_p
     Ed:
+    pushad
     call Ed_Edd_n_Eddy
+    popad
     jmp end_p
     debugAc:
+    pushad
     debug
+    popad
     jmp end_p
     user_wants_to_poop:
+    pushad
     call poop
+    popad
     jmp end_p
     duplicate_fun:
+    pushad
     call duplicate
+    popad
     jmp end_p
     and_meow:
+    pushad
     call myAnd
+    popad
     jmp end_p
     or_meow:
+    pushad
     call myOr
+    popad
     jmp end_p
     
+
     end_p:
     mov esp, ebp
     pop ebp
