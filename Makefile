@@ -1,4 +1,4 @@
-all: macros calc
+all: clean macros calc
 
 macros: calc.s
 	nasm -e calc.s -o macros.s

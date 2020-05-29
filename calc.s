@@ -203,9 +203,9 @@ section .bss            ; uninitilaized vars
     mov [X], dword eax      ; X <- pointer to first num
     mov [x], dword eax      ; x <- pointer to first num
     decStack                ; move 'stack' pointer to second num, decreas size
-    getHeadOfNum eax        ; eax <- pointer to first (=second) number in stack
-    mov [Y], dword eax      ; Y <- pointer to second num
-    mov [y], dword eax      ; y <- pointer to second num
+    getHeadOfNum ebx        ; eax <- pointer to first (=second) number in stack
+    mov [Y], dword ebx      ; Y <- pointer to second num
+    mov [y], dword ebx      ; y <- pointer to second num
 %endmacro
 
 section .text
@@ -484,13 +484,18 @@ myOr:
     checkUnderflow 2
     first_2_nums_in_Xx_Yy
     
+    ; eax = xl
+    ; ebx = yl
+    ; cl = and(bl|al) result 
     .loop:
         startLoop               ; end if both null
-        
+        cmp eax, 0              ; if x reached to null
 
 
-    .beforeEnd:
 
+    .freeX:
+        mov eax, [X]        ; free whole X
+        myFree eax
     .end:
     endFunc 0
 parseCommand:
@@ -511,6 +516,8 @@ parseCommand:
     je duplicate_fun
     cmp eax, 0x26       ;'&'
     je and_meow
+    cmp eax, 0x7C       ;'|'
+    je or_meow
     
     Posh:
     call posh
@@ -530,6 +537,10 @@ parseCommand:
     and_meow:
     call myAnd
     jmp end_p
+    or_meow:
+    call myOr
+    jmp end_p
+    
     end_p:
     mov esp, ebp
     pop ebp
