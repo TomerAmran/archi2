@@ -268,8 +268,8 @@ main:
         mov [stackBase], eax
 
     call myCalc
-    printNumber eax
     printHexDigit eax
+    printString mynew_line
     call myexit
 
 
@@ -555,6 +555,7 @@ parseCommand:
     je or_meow
     
     Posh:
+    dec dword [opCounter] ;lo yafe aval ofe
     pushad
     call posh
     popad
