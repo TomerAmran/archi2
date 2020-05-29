@@ -224,6 +224,13 @@ section .bss            ; uninitilaized vars
     mov eax, dword [eax+1]      ; x++
     mov [x], dword eax
 %endmacro
+%macro myfreeList 1
+    pushad
+    push %1
+    call freeList
+    add esp, 4 
+    popad
+%endmacro
 
 section .text
   align 16
@@ -272,7 +279,6 @@ main:
     printString mynew_line
     call myexit
 
-
 myCalc:
     startFunc 0
     .main_loop:
@@ -285,6 +291,15 @@ myCalc:
         dec eax ;we counted 'q' as well, so... you know
     endFunc 0   
 myexit:
+    mov eax, [stackBase]                  ; index = 1
+    .freeLoop:        
+        cmp eax, dword [stack]
+        jg .end
+        mov ebx, dword [eax]
+        myfreeList ebx
+        add eax, 4
+        jmp .freeLoop
+    .end:
     myFree [stackBase]          ; free operand stack
     mov eax,  SIGEXIT           ; call exit sys_call
     mov ebx, EXIT_SUCCESS       ; exit msg - seccess
@@ -339,9 +354,9 @@ Ed_Edd_n_Eddy:              ; addition
         mov ecx, dword [stack]      ; ecx <- location  of new number
         mov [ecx], dword edx        ; [[stack]] <- first link of new num
         mov eax, [X]                ; free X
-        myFree eax
+        myfreeList eax
         mov eax, [Y]                ; free Y
-        myFree eax
+        myfreeList eax
         
     endFunc 0
 
@@ -490,9 +505,9 @@ myAnd:
 
     .end:
         mov eax, [X]        ; free whole X
-        myFree eax
+        myfreeList eax
         mov eax, ebx        ; free rest of y if needed
-        myFree eax
+        myfreeList eax
     endFunc 0
 
 myOr:
@@ -529,7 +544,7 @@ myOr:
         mov dword [ebx+1], dword eax    ; y.next <- x.next
     .freeX:
         mov eax, [X]        ; free whole X
-        myFree eax
+        myfreeList eax
     .beforeEnd:
     .end:
     endFunc 0
@@ -597,4 +612,21 @@ parseCommand:
     pop ebp
     ret
 
+freeList:
+    startFunc 0
+    
+    mov eax, [ebp+8]         ; get link* l (given parameter)
+    cmp eax, 0
+    je .end
+    mov ebx , dword [eax+1]  ; ebx <- l.next
+    cmp ebx, 0               ; if l.next == nptr
+    je .release              ; release l
+
+    myfreeList ebx
+
+    .release:
+    myFree eax
+
+    .end:
+    endFunc 0
 
