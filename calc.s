@@ -268,6 +268,7 @@ main:
         mov [stackBase], eax
 
     call myCalc
+    printNumber eax
     printHexDigit eax
     call myexit
 
@@ -277,11 +278,12 @@ myCalc:
     .main_loop:
             myGets buff 
             call parseCommand
-            cmp eax, 0x71
+            cmp eax, 0x71 ;is eax ?!= 'q'
             jne .main_loop
     .endMyCalc:
-        mov eax, [opCounter]
-        endFunc 0   
+        mov eax, dword [opCounter]
+        dec eax ;we counted 'q' as well, so... you know
+    endFunc 0   
 myexit:
     myFree [stackBase]          ; free operand stack
     mov eax,  SIGEXIT           ; call exit sys_call
@@ -540,7 +542,6 @@ parseCommand:
     cmp eax ,0x70       ;'p'
     je user_wants_to_poop
     cmp eax, 0x71       ;'q'
-    dec dword [opCounter]
     je end_p
     cmp eax, 0x73       ;'s'
     je debugAc
