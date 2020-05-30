@@ -569,7 +569,7 @@ myOr:
 myN:
     ; ecx is the counter
     mov ecx, 0
-    mov eax, dword [stack]      ; pointer to first link
+    getHeadOfNum eax            ; pointer to first link
     mov [x], dword eax          ; pointer to first link in [x]
     mov [X], dword eax          ; also in [X], inorder to free later?
     mov ebx, dword [eax+1]      ; ebx <- pionter to next link
