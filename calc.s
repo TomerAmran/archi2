@@ -5,6 +5,7 @@ section	.rodata ;constats
     hexa_format: db "%X",0
     string_format: db "%s",0
     mynew_line: db "",10,0
+    calc: db "calc: ", 0
 
 section .data           ; inisiliazed vars
     size: dd 0
@@ -26,9 +27,12 @@ section .bss            ; uninitilaized vars
 %define _0 0x30
 %define _A 0x41
 %macro printNumber 1
+    pushad
     push dword %1
     push format_string
     call printf
+    add esp, 8
+    popad
 %endmacro
 %macro printHexDigit 1
     pushad              
@@ -285,12 +289,15 @@ main:
         mov [capacity], eax     ; [capasity] <- eax = (decimal) capacity
         printNumber [capacity]
     .init_stack:
+        pushad
         push dword 4            ; calloc first arg
         push dword [capacity]   ; calloc second arg
         call calloc             ; allocate memory for opetand stack. eax <- stack pointer
+        add esp, 8
         mov [stack], eax       ; pointer to end of stack
         sub dword[stack], 4
         mov [stackBase], eax
+        popad
 
     call myCalc
     printHexDigit eax
@@ -300,10 +307,11 @@ main:
 myCalc:
     startFunc 0
     .main_loop:
-            myGets buff 
-            call parseCommand
-            cmp eax, 0x71 ;is eax ?!= 'q'
-            jne .main_loop
+        printString calc
+        myGets buff 
+        call parseCommand
+        cmp eax, 0x71 ;is eax ?!= 'q'
+        jne .main_loop
     .endMyCalc:
         mov eax, dword [opCounter]
         dec eax ;we counted 'q' as well, so... you know
