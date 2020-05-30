@@ -11,6 +11,7 @@ section .data           ; inisiliazed vars
     size: dd 0
     capacity: dd 5    
     opCounter: dd 0
+    debugFlag: db 0     ; debug flag
 section .bss            ; uninitilaized vars
     stack: resd 1       ; dynamic stack pointer
     stackBase: resd 1   ; pointer to head of stack
@@ -252,6 +253,18 @@ section .bss            ; uninitilaized vars
             jmp %%endclean
     %%endclean:
 %endmacro
+%macro ifDebug 1
+    cmp byte [debugFlag], 0
+    je .noDebug
+    pushad
+    push %1
+    call printNumList
+    add esp, 4
+    popad
+    printString mynew_line
+    .noDebug:
+%endmacro
+
 
 
 section .text
@@ -299,6 +312,23 @@ main:
         mov [stackBase], eax
         popad
 
+    mov edx, [esp+4]
+    ;printNumber edx
+    cmp edx, 2
+    jle .noDebug
+    mov edx, [esp+8]
+    mov edx, [edx+8]        ; edx <- argv[2]
+    mov ecx, 0
+    mov cx, word [edx]          ; edx <- [argv[2]]
+    ;printHexDigit ecx
+    ;printString mynew_line
+    cmp cx, 0x642D          ; last letter is d?? wrong programming!!
+    jne .noDebug
+    inc byte [debugFlag]
+
+    .noDebug:
+    ;mov edx, [debugFlag]
+    ;printNumber edx
     call myCalc
     printHexDigit eax
     printString mynew_line
@@ -411,7 +441,12 @@ posh:
         pushNewLink cl
         add edx, 2
         jmp .evenlength
+
     .end:
+        getHeadOfNum eax
+        mov edx, [debugFlag]
+        printNumber edx
+        ifDebug eax
         endFunc 0
 
 poop:
@@ -705,4 +740,3 @@ freeList:
 
     .end:
     endFunc 0
-
