@@ -250,7 +250,6 @@ section .bss            ; uninitilaized vars
 %endmacro
 
 
-
 section .text
   align 16
   global main
@@ -268,24 +267,24 @@ main:
     ; #####  INITIALIZING OPERAND STACK  #######
     mov eax, [esp+4]            ; argc
     cmp eax, 1                  ; cheack if argc >1
-    jg update_stack_size        ; if argc>1 -> argv[1] = stacksize
-    jmp init_stack          
-    update_stack_size:
+    jg .update_stack_size        ; if argc>1 -> argv[1] = stacksize
+    jmp .init_stack          
+    .update_stack_size:
         mov eax, [esp+8]        ; put argv pointer in eax
         mov ecx, [eax+4]        ; put argv[1] in ecx
         checkLengthPairty ecx   ; chack if number length is odd, return value in eax
         cmp eax, 1              
-        je odd                  ; if odd
-        jmp even                ; else even
-    odd:
+        je .odd                  ; if odd
+        jmp .even                ; else even
+    .odd:
         parseOneChar ecx        ; returned value in eax
-        jmp updateCapacity      
-    even:
+        jmp .updateCapacity      
+    .even:
         parseTwochars ecx       ; returned value in eax
-    updateCapacity:
+    .updateCapacity:
         mov [capacity], eax     ; [capasity] <- eax = (decimal) capacity
         printNumber [capacity]
-    init_stack:
+    .init_stack:
         push dword 4            ; calloc first arg
         push dword [capacity]   ; calloc second arg
         call calloc             ; allocate memory for opetand stack. eax <- stack pointer
@@ -405,9 +404,7 @@ posh:
         add edx, 2
         jmp .evenlength
     .end:
-        mov esp, ebp
-        pop ebp
-        ret
+        endFunc 0
 
 poop:
     push ebp
@@ -568,6 +565,50 @@ myOr:
     .beforeEnd:
     .end:
     endFunc 0
+
+myN:
+    ; ecx is the counter
+    mov ecx, 0
+    mov eax, dword [stack]      ; pointer to first link
+    mov [x], dword eax          ; pointer to first link in [x]
+    mov [X], dword eax          ; also in [X], inorder to free later?
+    mov ebx, dword [eax+1]      ; ebx <- pionter to next link
+    .countLoop:
+        cmp ebx, 0              ; if l.next is null
+        je .checkOneTwo         ; check the last number
+        add ecx, 2              ; add two to counter
+        mov eax, dword [eax+1]  ; l <- l.next
+        mov ebx, dword [eax+1]  ; ebx <- l.next
+        jmp .countLoop
+
+    .checkOneTwo:
+        cmp byte [eax], 0xF
+        jle .One
+        add ecx, 1
+
+    .One:
+        add ecx, 1
+    
+    mov edx, [X]
+    myfreeList edx
+    decStack
+    
+    incStack
+    creatNewLinkForZ
+    mov edx, eax
+    mov ebx, dword [stack]
+    mov [ebx], dword eax            ; [[stack]] <- new link
+    .pushLoop:
+        cmp ecx, 0       ; no more links needed
+        je .end
+        creatNewLinkForZ
+        mov [edx+1], dword eax
+        mov edx, eax
+        jmp .pushLoop
+
+    .end:
+    endFunc 0
+
 parseCommand:
     startFunc 0
     inc dword [opCounter]
@@ -588,6 +629,8 @@ parseCommand:
     je and_meow
     cmp eax, 0x7C       ;'|'
     je or_meow
+    cmp eax, 0x6E       ;'n'
+    je n
     
     Posh:
     dec dword [opCounter] ;lo yafe aval ofe
@@ -623,6 +666,11 @@ parseCommand:
     or_meow:
     pushad
     call myOr
+    popad
+    jmp end_p
+    n:
+    pushad
+    call myN
     popad
     jmp end_p
     
