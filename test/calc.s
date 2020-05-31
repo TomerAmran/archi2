@@ -300,7 +300,7 @@ calculator:
         parseTwochars ecx       ; returned value in eax
     .updateCapacity:
         mov [capacity], eax     ; [capasity] <- eax = (decimal) capacity
-        ; printNumber [capacity]
+        printNumber [capacity]
     .init_stack:
         pushad
         push dword 4            ; calloc first arg
@@ -543,6 +543,7 @@ myAnd:
     checkUnderflow 2
     first_2_nums_in_Xx_Yy
 
+    
     ; eax = xl
     ; ebx = yl
     ; cl = and(bl&al) result 
@@ -566,43 +567,35 @@ myAnd:
     .end:
         mov eax, [X]        ; free whole X
         myfreeList eax
-        
-        .zeroingEndOfY:
-            cmp ebx ,0
-            je .endZeroingEndOfY
-            mov [ebx], byte 0
-            mov ebx, dword [ebx+1]
-            jmp .zeroingEndOfY
-        .endZeroingEndOfY:
-    
-    
+        mov eax, ebx        ; free rest of y if needed
+        myfreeList eax
 
     ; remove leading zeros
     ; [y] holds the prev
     ; eax holds the curr
     ; ebx holds the next (may null)
-    .leadloop:
-        getHeadOfNum eax
-        mov [y], dword eax
-        cmp dword [eax+1], 0
-        je .oneLink
-        mov eax, dword [eax+1]      ; dont want to remove the first link 
-        .Zloop:
-        mov ebx, dword [eax+1]
-        cmp ebx, 0
-        je .checkIfZero
-        mov [y], dword eax
-        mov eax, ebx
-        jmp .Zloop
-        .checkIfZero:
-        cmp byte [eax], 0
-        je .removeLink
-        endFunc 0
-        .removeLink:
-        myFree eax
-        mov eax, [y]
-        mov dword [eax+1], 0
-        jmp .leadloop
+    ; .leadloop:
+    ;     getHeadOfNum eax
+    ;     mov [y], dword eax
+    ;     cmp dword [eax+1], 0
+    ;     je .oneLink
+    ;     mov eax, dword [eax+1]      ; dont want to remove the first link 
+    ;     .Zloop:
+    ;     mov ebx, dword [eax+1]
+    ;     cmp ebx, 0
+    ;     je .checkIfZero
+    ;     mov [y], dword eax
+    ;     mov eax, ebx
+    ;     jmp .Zloop
+    ;     .checkIfZero:
+    ;     cmp byte [eax], 0
+    ;     je .removeLink
+    ;     endFunc 0
+    ;     .removeLink:
+    ;     myFree eax
+    ;     mov eax, [y]
+    ;     mov dword [eax+1], 0
+    ;     jmp .leadloop
 
     .oneLink:
         endFunc 0
@@ -612,15 +605,15 @@ myOr:
 
     checkUnderflow 2
     first_2_nums_in_Xx_Yy
+
+    mov eax, dword [x]
+    mov ebx, dword [y]
     
-    mov al, byte [eax]     ; eax <- x data
+    mov dl, byte [eax]     ; eax <- x data
     mov cl, byte [ebx]     ; ecx <- y data
-    or cl, al              ; cl <- cl & al
-    mov [ebx], cl          ; update y data to be cl
-    ; cmp eax, 0              ; if x reached to null
-    ; je .freeX
-    ; cmp ebx, 0              ; if y reached to null
-    ; je .movXtoY             ; mov x tail to y and free x
+    or cl, dl              ; cl <- cl & al
+    mov [ebx], byte cl     ; update y data to be cl
+
     mov eax, dword [eax+1]  ; eax <- next x link
     mov ebx, dword [ebx+1]  ; ebx <- next y link
     ; [x] = prev x link
@@ -649,21 +642,17 @@ myOr:
 
     .movXtoY:
         mov ebx, dword [y]               
-        mov dword [ebx+1], eax          ; connect y to x tail
+        mov dword [ebx+1], dword eax          ; connect y to x tail
         mov eax, dword [x]
-        mov dword [eax+1], 0                  ; disconnect x from its tail
-        ; mov edx, [x]  
-        ; mov dword [edx+1], 0            ; disconnect x tail               
-        ; mov eax, dword [eax+1]          ; eax <- x.next
-        ; mov ebx, [y]
-        ; mov dword [ebx+1], dword eax    ; y.next <- x.next
+        mov dword [eax+1], dword 0            ; disconnect x from its tail
+        
     .freeX:
         mov eax, [X]        ; free whole X
         myfreeList eax
     .beforeEnd:
     .end:
     endFunc 0
-    
+
 myN:
     ; ecx is the counter
     checkUnderflow 1

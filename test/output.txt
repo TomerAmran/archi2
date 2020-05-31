@@ -1,2 +1,15 @@
-calc: calc: Error: Insufficient Number of Arguments on Stack
-calc: calc: calc: 3
+calc: Error: Insufficient Number of Arguments on Stack
+calc: calc: calc: calc: calc: calc: Error: Operand Stack Overflow
+calc: 5
+calc: calc: 4
+calc: 4
+calc: 3
+calc: 2
+calc: calc: calc: calc: calc: calc: 6
+calc: 123321
+calc: calc: 246642
+calc: 123321
+calc: Error: Insufficient Number of Arguments on Stack
+calc: calc: calc: 123321
+calc: calc: 6
+calc: 17
