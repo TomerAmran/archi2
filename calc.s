@@ -255,14 +255,14 @@ section .bss            ; uninitilaized vars
 %endmacro
 %macro ifDebug 1
     cmp byte [debugFlag], 0
-    je .noDebug
+    je %%noDebug
     pushad
     push %1
     call printNumList
     add esp, 4
     popad
     printString mynew_line
-    .noDebug:
+    %%noDebug:
 %endmacro
 
 
@@ -444,8 +444,8 @@ posh:
 
     .end:
         getHeadOfNum eax
-        mov edx, [debugFlag]
-        printNumber edx
+        ;mov edx, [debugFlag]
+        ;printNumber edx
         ifDebug eax
         endFunc 0
 
@@ -611,6 +611,7 @@ myOr:
 
 myN:
     ; ecx is the counter
+    checkUnderflow 1
     mov ecx, 0
     getHeadOfNum eax            ; pointer to first link
     mov [x], dword eax          ; pointer to first link in [x]
