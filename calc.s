@@ -568,7 +568,36 @@ myAnd:
         myfreeList eax
         mov eax, ebx        ; free rest of y if needed
         myfreeList eax
-    endFunc 0
+
+    ; remove leading zeros
+    ; [y] holds the prev
+    ; eax holds the curr
+    ; ebx holds the next (may null)
+    .leadloop:
+        getHeadOfNum eax
+        mov [y], dword eax
+        cmp dword [eax+1], 0
+        je .oneLink
+        mov eax, dword [eax+1]      ; dont want to remove the first link 
+        .Zloop:
+        mov ebx, dword [eax+1]
+        cmp ebx, 0
+        je .checkIfZero
+        mov [y], dword eax
+        mov eax, ebx
+        jmp .Zloop
+        .checkIfZero:
+        cmp byte [eax], 0
+        je .removeLink
+        endFunc 0
+        .removeLink:
+        myFree eax
+        mov eax, [y]
+        mov dword [eax+1], 0
+        jmp .leadloop
+
+    .oneLink:
+        endFunc 0
 
 myOr:
     startFunc 0
