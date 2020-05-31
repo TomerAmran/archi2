@@ -628,9 +628,9 @@ myOr:
         cmp ebx, 0              ; if y reached to null
         je .movXtoY             ; mov x tail to y and free x
 
-        mov al, byte [eax]     ; eax <- x data
+        mov dl, byte [eax]     ; eax <- x data
         mov cl, byte [ebx]     ; ecx <- y data
-        or cl, al              ; cl <- cl & al
+        or cl, dl              ; cl <- cl & al
         mov [ebx], cl          ; update y data to be cl
 
         mov [x], dword eax
