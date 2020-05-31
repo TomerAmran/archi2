@@ -16,7 +16,7 @@ void compareFiles(FILE *fp1, FILE *fp2);
 
 int main(int argc, char** argv)
 {
-  char testIndex='4';//CHANGE TEST NUMBER HERE !(1-6)
+  char testIndex='5';//CHANGE TEST NUMBER HERE !(1-6)
 
   char inputFile [11]="input1.txt";
   char* outputFile ="output.txt";

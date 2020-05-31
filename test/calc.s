@@ -613,8 +613,20 @@ myOr:
     checkUnderflow 2
     first_2_nums_in_Xx_Yy
     
-    ; eax = xl
-    ; ebx = yl
+    mov al, byte [eax]     ; eax <- x data
+    mov cl, byte [ebx]     ; ecx <- y data
+    or cl, al              ; cl <- cl & al
+    mov [ebx], cl          ; update y data to be cl
+    ; cmp eax, 0              ; if x reached to null
+    ; je .freeX
+    ; cmp ebx, 0              ; if y reached to null
+    ; je .movXtoY             ; mov x tail to y and free x
+    mov eax, dword [eax+1]  ; eax <- next x link
+    mov ebx, dword [ebx+1]  ; ebx <- next y link
+    ; [x] = prev x link
+    ; [y] = prev y link
+    ; eax = curr x link
+    ; ebx = curr y link
     ; cl = and(bl|al) result 
     .loop:
         startLoop               ; end if both null
@@ -623,29 +635,35 @@ myOr:
         cmp ebx, 0              ; if y reached to null
         je .movXtoY             ; mov x tail to y and free x
 
-        mov eax, [x]                 
         mov al, byte [eax]     ; eax <- x data
-        mov ebx, [y]
         mov cl, byte [ebx]     ; ecx <- y data
         or cl, al              ; cl <- cl & al
         mov [ebx], cl          ; update y data to be cl
 
-        x_y_forward
+        mov [x], dword eax
+        mov [y], dword ebx
+        mov eax, dword [eax+1]
+        mov ebx, dword [ebx+1]
 
         jmp .loop
 
     .movXtoY:
-        mov eax, [x]                 
-        mov eax, dword [eax+1]          ; eax <- x.next
-        mov ebx, [y]
-        mov dword [ebx+1], dword eax    ; y.next <- x.next
+        mov ebx, dword [y]               
+        mov dword [ebx+1], eax          ; connect y to x tail
+        mov eax, dword [x]
+        mov dword [eax+1], 0                  ; disconnect x from its tail
+        ; mov edx, [x]  
+        ; mov dword [edx+1], 0            ; disconnect x tail               
+        ; mov eax, dword [eax+1]          ; eax <- x.next
+        ; mov ebx, [y]
+        ; mov dword [ebx+1], dword eax    ; y.next <- x.next
     .freeX:
         mov eax, [X]        ; free whole X
         myfreeList eax
     .beforeEnd:
     .end:
     endFunc 0
-
+    
 myN:
     ; ecx is the counter
     checkUnderflow 1

@@ -1,7 +1,4 @@
-all: clean macros calc
-
-macros: calc.s
-	nasm -e calc.s -o macros.s
+all: clean calc
 
 calc: calc.o debug.o
 	gcc -m32 -Wall -g calc.o debug.o -o calc
@@ -11,8 +8,6 @@ calc.o: calc.s
 
 debug.o: debug.c
 	gcc -m32 -c -Wall -g debug.c -o debug.o
-
-
 
 clean: 
 	rm -f  *.o calc macros.s
