@@ -1,0 +1,12 @@
+Error: Insufficient Number of Arguments on Stack
+0
+2
+ABC123
+208
+1202202088248BCD25011012
+0
+0
+0
+88
+88
+15

@@ -1,0 +1,15 @@
+Error: Insufficient Number of Arguments on Stack
+Error: Operand Stack Overflow
+5
+4
+4
+3
+2
+6
+123321
+246642
+123321
+Error: Insufficient Number of Arguments on Stack
+123321
+6
+17

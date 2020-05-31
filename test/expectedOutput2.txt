@@ -1,0 +1,15 @@
+Error: Insufficient Number of Arguments on Stack
+2
+14
+FF
+103
+1FE
+10007
+1000B
+FFCE00
+111111
+10000000000
+10000000000
+AABBCC
+CD
+1B
