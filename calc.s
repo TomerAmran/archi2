@@ -605,15 +605,15 @@ myOr:
 
     checkUnderflow 2
     first_2_nums_in_Xx_Yy
+
+    mov eax, dword [x]
+    mov ebx, dword [y]
     
-    mov al, byte [eax]     ; eax <- x data
+    mov dl, byte [eax]     ; eax <- x data
     mov cl, byte [ebx]     ; ecx <- y data
-    or cl, al              ; cl <- cl & al
-    mov [ebx], cl          ; update y data to be cl
-    ; cmp eax, 0              ; if x reached to null
-    ; je .freeX
-    ; cmp ebx, 0              ; if y reached to null
-    ; je .movXtoY             ; mov x tail to y and free x
+    or cl, dl              ; cl <- cl & al
+    mov [ebx], byte cl     ; update y data to be cl
+
     mov eax, dword [eax+1]  ; eax <- next x link
     mov ebx, dword [ebx+1]  ; ebx <- next y link
     ; [x] = prev x link
@@ -644,12 +644,8 @@ myOr:
         mov ebx, dword [y]               
         mov dword [ebx+1], dword eax          ; connect y to x tail
         mov eax, dword [x]
-        mov dword [eax+1], 0            ; disconnect x from its tail
-        ; mov edx, [x]  
-        ; mov dword [edx+1], 0            ; disconnect x tail               
-        ; mov eax, dword [eax+1]          ; eax <- x.next
-        ; mov ebx, [y]
-        ; mov dword [ebx+1], dword eax    ; y.next <- x.next
+        mov dword [eax+1], dword 0            ; disconnect x from its tail
+        
     .freeX:
         mov eax, [X]        ; free whole X
         myfreeList eax
