@@ -300,7 +300,7 @@ main:
         parseTwochars ecx       ; returned value in eax
     .updateCapacity:
         mov [capacity], eax     ; [capasity] <- eax = (decimal) capacity
-        printNumber [capacity]
+        ; printNumber [capacity]
     .init_stack:
         pushad
         push dword 4            ; calloc first arg
@@ -566,8 +566,16 @@ myAnd:
     .end:
         mov eax, [X]        ; free whole X
         myfreeList eax
-        mov eax, ebx        ; free rest of y if needed
-        myfreeList eax
+        
+        .zeroingEndOfY:
+            cmp ebx ,0
+            je .endZeroingEndOfY
+            mov [ebx], byte 0
+            mov ebx, dword [ebx+1]
+            jmp .zeroingEndOfY
+        .endZeroingEndOfY:
+    
+    
 
     ; remove leading zeros
     ; [y] holds the prev
